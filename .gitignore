@@ -1,5 +1,4 @@
 config/dev.js
-fxa-auth-db-server/node_modules
 node_modules/
 sandbox/
 coverage.html

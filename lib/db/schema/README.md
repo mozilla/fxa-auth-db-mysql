@@ -39,9 +39,9 @@ To document this, we're trying to keep to the following order though obviously d
 As a slice of history related to this decision, you can follow along in cronological order in these four issues/pulls:
 
 * https://github.com/mozilla/fxa-auth-server/issues/785
-* https://github.com/mozilla/fxa-auth-db-server/issues/101
-* https://github.com/mozilla/fxa-auth-db-mysql/issues/28
-* https://github.com/mozilla/fxa-auth-db-mysql/pull/36
+* https://github.com/mozilla/fxa-auth-db-server-old/issues/101
+* https://github.com/mozilla/fxa-auth-db-server/issues/28
+* https://github.com/mozilla/fxa-auth-db-server/pull/36
 
 ## Stored Procedures and Future Patches
 

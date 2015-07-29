@@ -1,5 +1,7 @@
 # Developing with Backend Repos #
 
+**IMPORTANT NOTE:** Everything in this document concerning the three separate repos is now untrue. There is only one repo, this one. This document will be updated or deleted in due course.
+
 The FxA project currently has three repos related to the database backend. This repo (fxa-auth-db-server) holds the
 common server and common tests that each storage backend uses. The current (two) storage backends that use this
 repo are:
