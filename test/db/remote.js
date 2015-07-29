@@ -2,8 +2,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 require('ass')
-var dbServer = require('fxa-auth-db-server')
-var backendTests = require('fxa-auth-db-server/test/backend')
+var dbServer = require('../../lib/server')
+var serverTests = require('../server')
 var config = require('../../config')
 var noop = function () {}
 var log = { trace: noop, error: noop, stat: noop, info: noop }
@@ -32,7 +32,7 @@ DB.connect(config)
     return d.promise
   })
   .then(function(server) {
-    return backendTests.remote(config, server)
+    return serverTests.remote(config, server)
   })
   .then(function() {
     server.close()

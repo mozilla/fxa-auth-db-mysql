@@ -5,14 +5,6 @@ Firefox Accounts DB Server
 
 ## Usage
 
-If you would like to run an FxA Auth DB Server, then you probably want to look at the
-[FxA Auth DB MySql](http://github.com/mozilla/fxa-auth-db-mysql/) repo (for production usage) or the
-[FxA Auth DB Mem](http://github.com/mozilla/fxa-auth-db-mem/) repo (for testing purposes). Each of these repos
-implement a storage backend and will install this repo when you run `npm install` since they each import the server
-from here.
-
-## Usage
-
 ```js
 // Require the dbServer. This includes dbServer.createServer() and the dbServer.errors object.
 var dbServer = require('fxa-auth-db-server')

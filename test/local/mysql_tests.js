@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 require('ass')
-var dbServer = require('fxa-auth-db-server')
+var dbServer = require('../../lib/server')
 var log = { trace: console.log, error: console.log, stat: console.log, info: console.log }
 var DB = require('../../lib/db/mysql')(log, dbServer.errors)
 var config = require('../../config')
@@ -16,7 +16,7 @@ DB.connect(config)
       test(
         'ping',
         function (t) {
-          t.plan(1);
+          t.plan(1)
           return db.ping()
           .then(function(account) {
             t.pass('Got the ping ok')
@@ -205,15 +205,15 @@ DB.connect(config)
               var possibleErrors = [
                 { msg: 'ER_BAD_NULL_ERROR', errno: 1048 },
                 { msg: 'ER_NO_DEFAULT_FOR_FIELD', errno: 1364 }
-              ];
-              var matchedError = false;
+              ]
+              var matchedError = false
               possibleErrors.forEach(function(possibleErr) {
                 if (err.message === possibleErr.msg) {
                   if (err.errno === possibleErr.errno ) {
-                    matchedError = true;
+                    matchedError = true
                   }
                 }
-              });
+              })
               t.ok(matchedError, 'error message and errno are correct')
               t.end()
             })

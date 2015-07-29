@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 require('ass')
-var dbServer = require('fxa-auth-db-server')
+var dbServer = require('../../lib/server')
 var test = require('../ptaptest')
 var P = require('../../lib/promise')
 var config = require('../../config')
@@ -30,7 +30,7 @@ DB.connect(config)
       test(
         'db/mysql logs stats periodically',
         function (t) {
-          t.plan(4);
+          t.plan(4)
           return dfd.promise
             .then(
               function(stats) {

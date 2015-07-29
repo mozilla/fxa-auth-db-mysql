@@ -8,7 +8,7 @@ test(
   'error module',
   function (t) {
     t.plan(22)
-    var error = require('../../lib/error')
+    var error = require('../../lib/server/error')
     t.type(error, 'function', 'error module returns a function')
 
     var duplicate = error.duplicate()
