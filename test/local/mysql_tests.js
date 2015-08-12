@@ -8,6 +8,10 @@ var DB = require('../../lib/db/mysql')(log, dbServer.errors)
 var config = require('../../config')
 var test = require('../ptaptest')
 var P = require('../../lib/promise')
+var crypto = require('crypto')
+
+var zeroBuffer16 = Buffer('00000000000000000000000000000000', 'hex')
+var zeroBuffer32 = Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
 
 DB.connect(config)
   .then(
@@ -221,11 +225,158 @@ DB.connect(config)
       )
 
       test(
+        'metrics',
+        function (t) {
+          var lastResults
+          var uid
+          var times = [
+            Date.now()
+          ]
+          t.plan(26)
+          P.all([
+            db.countAccountsCreatedBefore(times[0]),
+            db.countVerifiedAccountsCreatedBefore(times[0]),
+            db.countAccountsWithTwoOrMoreDevices(),
+            db.countAccountsWithThreeOrMoreDevices(),
+            db.countAccountsWithMobileDevice()
+          ]).then(function (results) {
+            results.forEach(function (result, index) {
+              t.ok(result.count >= 0, 'returned non-negative count [' + index + ']')
+            })
+            lastResults = results
+            uid = crypto.randomBytes(16)
+            times[1] = Date.now()
+            return createAccount(uid, times[1], false)
+          }).then(function () {
+            return P.all([
+              db.countAccountsCreatedBefore(times[1] + 1),
+              db.countVerifiedAccountsCreatedBefore(times[1] + 1),
+              db.countAccountsWithTwoOrMoreDevices(),
+              db.countAccountsWithThreeOrMoreDevices(),
+              db.countAccountsWithMobileDevice()
+            ])
+          }).then(function (results) {
+            t.ok(results[0].count === lastResults[0].count + 1, 'account count was incremented by one')
+            t.ok(results[1].count === lastResults[1].count, 'verified account count was not incremented')
+            t.ok(results[2].count === lastResults[2].count, '2+ device account count was not incremented')
+            t.ok(results[3].count === lastResults[3].count, '3+ device account count was not incremented')
+            t.ok(results[4].count === lastResults[4].count, 'mobile device account count was not incremented')
+            lastResults = results
+            return deleteAccount(uid)
+          }).then(function () {
+            times[2] = Date.now()
+            return createAccount(uid, times[2], true)
+          }).then(function () {
+            return P.all([
+              db.countAccountsCreatedBefore(times[2] + 1),
+              db.countVerifiedAccountsCreatedBefore(times[2] + 1),
+              db.countAccountsWithTwoOrMoreDevices(),
+              db.countAccountsWithThreeOrMoreDevices(),
+              db.countAccountsWithMobileDevice()
+            ])
+          }).then(function (results) {
+            t.ok(results[0].count === lastResults[0].count, 'account count was not incremented')
+            t.ok(results[1].count === lastResults[1].count + 1, 'verified account count was incremented by one')
+            t.ok(results[2].count === lastResults[2].count, '2+ device account count was not incremented')
+            t.ok(results[3].count === lastResults[3].count, '3+ device account count was not incremented')
+            t.ok(results[4].count === lastResults[4].count, 'mobile device account count was not incremented')
+            lastResults = results
+            return P.all([
+              createSessionToken(uid),
+              createSessionToken(uid)
+            ])
+          }).then(function () {
+            return P.all([
+              db.countAccountsCreatedBefore(times[2] + 1),
+              db.countVerifiedAccountsCreatedBefore(times[2] + 1),
+              db.countAccountsWithTwoOrMoreDevices(),
+              db.countAccountsWithThreeOrMoreDevices(),
+              db.countAccountsWithMobileDevice()
+            ])
+          }).then(function (results) {
+            t.ok(results[0].count === lastResults[0].count, 'account count was not incremented')
+            t.ok(results[1].count === lastResults[1].count, 'verified account count was not incremented')
+            t.ok(results[2].count === lastResults[2].count + 1, '2+ device account count was incremented by one')
+            t.ok(results[3].count === lastResults[3].count, '3+ device account count was not incremented')
+            t.ok(results[4].count === lastResults[4].count, 'mobile device account count was not incremented')
+            lastResults = results
+            return createSessionToken(uid)
+          }).then(function () {
+            return P.all([
+              db.countAccountsWithTwoOrMoreDevices(),
+              db.countAccountsWithThreeOrMoreDevices(),
+              db.countAccountsWithMobileDevice()
+            ])
+          }).then(function (results) {
+            t.ok(results[0].count === lastResults[2].count, '2+ device account count was not incremented')
+            t.ok(results[1].count === lastResults[3].count + 1, '3+ device account count was incremented by one')
+            t.ok(results[2].count === lastResults[4].count, 'mobile device account count was not incremented')
+            lastResults = results
+            return createSessionToken(uid, 'mobile')
+          }).then(function () {
+            return P.all([
+              db.countAccountsWithTwoOrMoreDevices(),
+              db.countAccountsWithThreeOrMoreDevices(),
+              db.countAccountsWithMobileDevice()
+            ])
+          }).then(function (results) {
+            t.ok(results[0].count === lastResults[0].count, '2+ device account count was not incremented')
+            t.ok(results[1].count === lastResults[1].count, '3+ device account count was not incremented')
+            t.ok(results[2].count === lastResults[2].count + 1, 'mobile device account count was incremented by one')
+            return deleteAccount(uid)
+          }).then(function () {
+            t.end()
+          }, function (err) {
+            t.fail('no errors should have occurred')
+            t.end()
+          })
+        }
+      )
+
+      test(
         'teardown',
         function (t) {
           return db.close()
         }
       )
 
+      function createAccount (uid, time, emailVerified) {
+        var email = ('' + Math.random()).substr(2) + '@foo.com'
+        return db.createAccount(uid, {
+          email: email,
+          normalizedEmail: email.toLowerCase(),
+          emailCode: zeroBuffer16,
+          emailVerified: emailVerified,
+          verifierVersion: 1,
+          verifyHash: zeroBuffer32,
+          authSalt: zeroBuffer32,
+          kA: zeroBuffer32,
+          wrapWrapKb: zeroBuffer32,
+          verifierSetAt: time,
+          createdAt: time,
+          locale: 'en_US'
+        })
+      }
+
+      function deleteAccount(uid) {
+        return db.deleteAccount(uid)
+      }
+
+      function createSessionToken (uid, uaDeviceType) {
+        return db.createSessionToken(hex(32), {
+          data: hex(32),
+          uid: uid,
+          createdAt: Date.now(),
+          uaBrowser: 'foo',
+          uaBrowserVersion: 'bar',
+          uaOS: 'baz',
+          uaOSVersion: 'qux',
+          uaDeviceType: uaDeviceType
+        })
+      }
+
+      function hex (length) {
+        return Buffer(crypto.randomBytes(length).toString('hex'), 'hex')
+      }
     }
   )
