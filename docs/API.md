@@ -40,6 +40,15 @@ There are a number of methods that a DB storage backend should implement:
     * .ping()
     * .close()
 
+The MySQL backend also implements
+some additional methods for metrics reporting:
+
+* .countAccountsCreatedBefore(createdBefore)
+* .countVerifiedAccountsCreatedBefore(createdBefore)
+* .countAccountsWithTwoOrMoreDevices()
+* .countAccountsWithThreeOrMoreDevices()
+* .countAccountsWithMobileDevice()
+
 ## Types ##
 
 # Parameters #
@@ -359,6 +368,6 @@ Parameters:
     * tokenId
     * data
     * uid
-    * createdA
+    * createdAt
 
 (Ends)
