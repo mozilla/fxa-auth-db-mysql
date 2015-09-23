@@ -3,6 +3,7 @@
 
 var test = require('../ptaptest')
 var crypto = require('crypto')
+var P = require('../../lib/promise')
 
 var zeroBuffer16 = Buffer('00000000000000000000000000000000', 'hex')
 var zeroBuffer32 = Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
@@ -207,7 +208,8 @@ module.exports = function(config, DB) {
         test(
           'session token handling',
           function (t) {
-            t.plan(56)
+            var tokenIds
+            t.plan(86)
             return db.sessions(ACCOUNT.uid)
               .then(function(sessions) {
                 t.ok(Array.isArray(sessions), 'sessions is an array')
@@ -256,7 +258,8 @@ module.exports = function(config, DB) {
                   uaOS: 'bar',
                   uaOSVersion: '2',
                   uaDeviceType: 'baz',
-                  lastAccessTime: 42
+                  lastAccessTime: 42,
+                  batchSize: 1
                 })
               })
               .then(function(result) {
@@ -307,6 +310,103 @@ module.exports = function(config, DB) {
                 t.fail('Session Token should no longer exist')
               }, function(err) {
                 t.pass('Session Token deleted successfully')
+              })
+              .then(function() {
+                tokenIds = [ hex32(), hex32(), hex32() ]
+                return P.all([
+                  db.createSessionToken(tokenIds[0], SESSION_TOKEN),
+                  db.createSessionToken(tokenIds[1], SESSION_TOKEN),
+                  db.createSessionToken(tokenIds[2], SESSION_TOKEN)
+                ])
+              })
+              .then(function() {
+                return db.updateSessionToken(tokenIds[0], {
+                  uaBrowser: 'foo',
+                  uaBrowserVersion: '1',
+                  uaOS: 'bar',
+                  uaOSVersion: '2',
+                  uaDeviceType: 'baz',
+                  lastAccessTime: 42,
+                  batchSize: 3
+                })
+              })
+              .then(function() {
+                return db.sessionToken(tokenIds[0])
+              })
+              .then(function(token) {
+                t.equal(token.uaBrowser, SESSION_TOKEN.uaBrowser, 'uaBrowser was not updated')
+                t.equal(token.uaBrowserVersion, SESSION_TOKEN.uaBrowserVersion, 'uaBrowserVersion was not updated')
+                t.equal(token.uaOS, SESSION_TOKEN.uaOS, 'uaOS was not updated')
+                t.equal(token.uaOSVersion, SESSION_TOKEN.uaOSVersion, 'uaOSVersion was not updated')
+                t.equal(token.uaDeviceType, SESSION_TOKEN.uaDeviceType, 'uaDeviceType was not updated')
+                t.equal(token.lastAccessTime, SESSION_TOKEN.createdAt, 'lastAccessTime was not updated')
+              })
+              .then(function() {
+                return db.updateSessionToken(tokenIds[1], {
+                  uaBrowser: 'a',
+                  uaBrowserVersion: '1.1',
+                  uaOS: 'b',
+                  uaOSVersion: '2.2',
+                  uaDeviceType: 'c',
+                  lastAccessTime: 42424242,
+                  batchSize: 3
+                })
+              })
+              .then(function() {
+                return db.sessionToken(tokenIds[1])
+              })
+              .then(function(token) {
+                t.equal(token.uaBrowser, SESSION_TOKEN.uaBrowser, 'uaBrowser was not updated')
+                t.equal(token.uaBrowserVersion, SESSION_TOKEN.uaBrowserVersion, 'uaBrowserVersion was not updated')
+                t.equal(token.uaOS, SESSION_TOKEN.uaOS, 'uaOS was not updated')
+                t.equal(token.uaOSVersion, SESSION_TOKEN.uaOSVersion, 'uaOSVersion was not updated')
+                t.equal(token.uaDeviceType, SESSION_TOKEN.uaDeviceType, 'uaDeviceType was not updated')
+                t.equal(token.lastAccessTime, SESSION_TOKEN.createdAt, 'lastAccessTime was not updated')
+              })
+              .then(function() {
+                return db.updateSessionToken(tokenIds[2], {
+                  uaBrowser: 'wibble',
+                  uaBrowserVersion: 'wibble',
+                  uaOS: 'wibble',
+                  uaOSVersion: 'wibble',
+                  uaDeviceType: 'wibble',
+                  lastAccessTime: 42,
+                  batchSize: 3
+                })
+              })
+              .then(function() {
+                return P.all([
+                  db.sessionToken(tokenIds[0]),
+                  db.sessionToken(tokenIds[1]),
+                  db.sessionToken(tokenIds[2])
+                ])
+              })
+              .then(function(tokens) {
+                t.equal(tokens[0].uaBrowser, 'foo', 'uaBrowser was updated on first token')
+                t.equal(tokens[0].uaBrowserVersion, '1', 'uaBrowserVersion was updated on first token')
+                t.equal(tokens[0].uaOS, 'bar', 'uaOS was updated on first token')
+                t.equal(tokens[0].uaOSVersion, '2', 'uaOSVersion was updated on first token')
+                t.equal(tokens[0].uaDeviceType, 'baz', 'uaDeviceType was updated on first token')
+                t.equal(tokens[0].lastAccessTime, 42, 'lastAccessTime was updated on first token')
+                t.equal(tokens[1].uaBrowser, 'a', 'uaBrowser was updated on second token')
+                t.equal(tokens[1].uaBrowserVersion, '1.1', 'uaBrowserVersion was updated on second token')
+                t.equal(tokens[1].uaOS, 'b', 'uaOS was updated on second token')
+                t.equal(tokens[1].uaOSVersion, '2.2', 'uaOSVersion was updated on second token')
+                t.equal(tokens[1].uaDeviceType, 'c', 'uaDeviceType was updated on second token')
+                t.equal(tokens[1].lastAccessTime, 42424242, 'lastAccessTime was updated on second token')
+                t.equal(tokens[2].uaBrowser, 'wibble', 'uaBrowser was updated on third token')
+                t.equal(tokens[2].uaBrowserVersion, 'wibble', 'uaBrowserVersion was updated on third token')
+                t.equal(tokens[2].uaOS, 'wibble', 'uaOS was updated on third token')
+                t.equal(tokens[2].uaOSVersion, 'wibble', 'uaOSVersion was updated on third token')
+                t.equal(tokens[2].uaDeviceType, 'wibble', 'uaDeviceType was updated on third token')
+                t.equal(tokens[2].lastAccessTime, 42, 'lastAccessTime was updated on third token')
+              })
+              .then(function() {
+                return P.all([
+                  db.deleteSessionToken(tokenIds[0]),
+                  db.deleteSessionToken(tokenIds[1]),
+                  db.deleteSessionToken(tokenIds[2])
+                ])
               })
           }
         )

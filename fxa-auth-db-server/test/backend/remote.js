@@ -248,7 +248,8 @@ module.exports = function(cfg, server) {
             uaOS: 'different OS',
             uaOSVersion: 'different OS version',
             uaDeviceType: 'different device type',
-            lastAccessTime: 42
+            lastAccessTime: 42,
+            batchSize: 1
           })
         })
         .then(function(r) {
