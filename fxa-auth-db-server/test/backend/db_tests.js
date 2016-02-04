@@ -812,7 +812,7 @@ module.exports = function(config, DB) {
         test(
           'db.accountDevices',
           function (t) {
-            t.plan(51)
+            t.plan(59)
             var deviceId = newUuid()
             var sessionTokenId = hex32()
             var createdAt = Date.now()
@@ -874,6 +874,22 @@ module.exports = function(config, DB) {
                 t.equal(device.callbackURL, null, 'callbackURL')
                 t.deepEqual(device.callbackPublicKey, null, 'callbackPublicKey')
                 t.ok(device.lastAccessTime > 0, 'has a lastAccessTime')
+                return db.sessionDevice(sessionTokenId)
+                  .then(
+                    function (d) {
+                      t.deepEqual(d.id, device.id, 'id')
+                      t.deepEqual(d.uid, device.uid, 'uid')
+                      t.deepEqual(d.sessionTokenId, device.sessionTokenId, 'sessionTokenId')
+                      t.equal(d.name, device.name, 'name')
+                      t.equal(d.type, device.type, 'type')
+                      t.equal(d.createdAt, device.createdAt, 'createdAt')
+                      t.equal(d.callbackURL, device.callbackURL, 'callbackURL')
+                      t.equal(d.callbackPublicKey, device.callbackPublicKey, 'callbackPublicKey')
+                    },
+                    function (e) {
+                      t.fail('getting the sessionDevice should not have failed')
+                    }
+                  )
               })
               .then(function () {
                 return db.updateDevice(ACCOUNT.uid, deviceId, deviceInfo)
