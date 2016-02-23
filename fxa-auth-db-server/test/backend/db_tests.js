@@ -1555,6 +1555,57 @@ module.exports = function(config, DB) {
         )
 
         test(
+          'reminders - create and delete',
+          function (t) {
+            t.plan(3)
+            var fetchQuery = {
+              query: {
+                type: 'second',
+                reminderTime: 1,
+                reminderTimeOutdated: 100,
+                limit: 20
+              }
+            }
+            var account = createAccount()
+            return db.createAccount(account.uid, account)
+              .then(
+                function () {
+                  return db.createVerificationReminder({
+                    body: {
+                      uid: account.uid,
+                      type: 'second'
+                    }
+                  })
+                }
+              )
+              .then(
+                function () {
+                  return P.delay(20).then(function () {
+                    return db.fetchReminders(fetchQuery)
+                  })
+                }
+              )
+              .then(
+                function (result) {
+                  t.equal(result[0].type, 'second', 'correct type')
+                  t.equal(result[0].uid.toString('hex'), account.uid.toString('hex'), 'correct uid')
+                }
+              )
+              .then(
+                function () {
+                  return db.fetchReminders(fetchQuery)
+                }
+              )
+              .then(
+                function (result) {
+                  t.equal(result.length, 0, 'no more reminders')
+                  t.end()
+                }
+              )
+          }
+        )
+
+        test(
           'teardown',
           function (t) {
             return db.close()
