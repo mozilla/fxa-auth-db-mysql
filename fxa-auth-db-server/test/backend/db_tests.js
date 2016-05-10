@@ -3,7 +3,6 @@
 
 var test = require('tap').test
 var crypto = require('crypto')
-var base64url = require('base64url')
 
 var zeroBuffer16 = Buffer('00000000000000000000000000000000', 'hex')
 var zeroBuffer32 = Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
@@ -42,13 +41,6 @@ function hex16() { return hex(16) }
 function hex32() { return hex(32) }
 // function hex64() { return hex(64) }
 function hex96() { return hex(96) }
-
-function base64(len) {
-  return base64url(crypto.randomBytes(len))
-}
-
-function base64_16() { return base64(16) }
-function base64_65() { return base64(65) }
 
 var SESSION_TOKEN_ID = hex32()
 var SESSION_TOKEN = {
@@ -820,16 +812,14 @@ module.exports = function(config, DB) {
         test(
           'db.accountDevices',
           function (t) {
-            t.plan(63)
+            t.plan(53)
             var deviceId = newUuid()
             var sessionTokenId = hex32()
             var createdAt = Date.now()
             var deviceInfo = {
               name: 'test device',
               type: 'mobile',
-              callbackURL: 'https://foo/bar',
-              callbackPublicKey: base64_65(),
-              callbackAuthKey: base64_16()
+              callbackURL: 'https://foo/bar'
             }
             var newDeviceId = newUuid()
             var newSessionTokenId = hex32()
@@ -881,8 +871,6 @@ module.exports = function(config, DB) {
                 t.equal(device.createdAt, createdAt, 'createdAt')
                 t.equal(device.type, null, 'type')
                 t.equal(device.callbackURL, null, 'callbackURL')
-                t.equal(device.callbackPublicKey, null, 'callbackPublicKey')
-                t.equal(device.callbackAuthKey, null, 'callbackAuthKey')
                 t.ok(device.lastAccessTime > 0, 'has a lastAccessTime')
                 return db.sessionWithDevice(sessionTokenId)
                   .then(
@@ -893,8 +881,6 @@ module.exports = function(config, DB) {
                       t.equal(s.deviceType, device.type, 'type')
                       t.equal(s.deviceCreatedAt, device.createdAt, 'createdAt')
                       t.equal(s.deviceCallbackURL, device.callbackURL, 'callbackURL')
-                      t.equal(s.deviceCallbackPublicKey, device.callbackPublicKey, 'callbackPublicKey')
-                      t.equal(s.deviceCallbackAuthKey, device.callbackAuthKey, 'callbackAuthKey')
                     },
                     function (e) {
                       t.fail('getting the sessionWithDevice should not have failed')
@@ -922,8 +908,6 @@ module.exports = function(config, DB) {
                 t.equal(device.createdAt, createdAt, 'createdAt')
                 t.equal(device.type, deviceInfo.type, 'type')
                 t.equal(device.callbackURL, deviceInfo.callbackURL, 'callbackURL')
-                t.equal(device.callbackPublicKey, deviceInfo.callbackPublicKey, 'callbackPublicKey')
-                t.equal(device.callbackAuthKey, deviceInfo.callbackAuthKey, 'callbackAuthKey')
                 t.ok(device.lastAccessTime > 0, 'has a lastAccessTime')
                 return db.createSessionToken(newSessionTokenId, SESSION_TOKEN)
               })
@@ -949,13 +933,9 @@ module.exports = function(config, DB) {
                 t.equal(device.name, 'updated name', 'name updated')
                 t.equal(device.type, deviceInfo.type, 'type unchanged')
                 t.equal(device.callbackURL, deviceInfo.callbackURL, 'callbackURL unchanged')
-                t.equal(device.callbackPublicKey, deviceInfo.callbackPublicKey, 'callbackPublicKey unchanged')
-                t.equal(device.callbackAuthKey, deviceInfo.callbackAuthKey, 'callbackAuthKey unchanged')
                 return db.updateDevice(ACCOUNT.uid, deviceId, {
                   type: 'desktop',
-                  callbackURL: '',
-                  callbackPublicKey: '',
-                  callbackAuthKey: ''
+                  callbackURL: ''
                 })
                 .catch(function () {
                   t.fail('updating an existing device should not have failed')
@@ -973,16 +953,12 @@ module.exports = function(config, DB) {
                 t.equal(device.name, 'updated name', 'name unchanged')
                 t.equal(device.type, 'desktop', 'type updated')
                 t.equal(device.callbackURL, '', 'callbackURL updated')
-                t.equal(device.callbackPublicKey, '', 'callbackPublicKey updated')
-                t.equal(device.callbackAuthKey, '', 'callbackAuthKey updated')
                 return db.createDevice(ACCOUNT.uid, newUuid(), {
                   sessionTokenId: newSessionTokenId,
                   name: 'second device',
                   createdAt: Date.now(),
                   type: 'desktop',
-                  callbackURL: 'https://foo/bar',
-                  callbackPublicKey: base64_65(),
-                  callbackAuthKey: base64_16()
+                  callbackURL: 'https://foo/bar'
                 })
                 .then(function () {
                   t.fail('adding a second device should have failed when the session token is already registered')
@@ -1002,9 +978,7 @@ module.exports = function(config, DB) {
                   name: 'second device',
                   createdAt: Date.now(),
                   type: 'desktop',
-                  callbackURL: 'https://foo/bar',
-                  callbackPublicKey: base64_65(),
-                  callbackAuthKey: base64_16()
+                  callbackURL: 'https://foo/bar'
                 })
                 .then(function () {
                   t.pass('adding a second device did not fail when the session token is not registered')
