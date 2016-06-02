@@ -195,7 +195,7 @@ module.exports = function(cfg, server) {
   test(
     'session token handling',
     function (t) {
-      t.plan(125)
+      t.plan(127)
       var user = fake.newUserDataHex()
       var verifiedUser = fake.newUserDataHex()
       delete verifiedUser.sessionToken.tokenVerificationId
@@ -392,6 +392,17 @@ module.exports = function(cfg, server) {
         .then(function(r) {
           t.equal(r.obj.tokenVerificationId, null, 'tokenVerificationId is null')
 
+          // Attempt to verify the session token again
+          return client.postThen('/tokens/' + user.sessionToken.tokenVerificationId + '/verify', {
+            uid: user.accountId
+          })
+        })
+        .then(function () {
+          t.fail('Verifying a verified token should have failed')
+        }, function (err) {
+          testNotFound(t, err)
+        })
+        .then(function () {
           // Update the newly verified session token
           return client.postThen('/sessionToken/' + user.sessionTokenId + '/update', {
             uaBrowser: 'different browser',
@@ -561,7 +572,7 @@ module.exports = function(cfg, server) {
   test(
     'key fetch token handling',
     function (t) {
-      t.plan(35)
+      t.plan(39)
       var user = fake.newUserDataHex()
       var verifiedUser = fake.newUserDataHex()
       delete verifiedUser.keyFetchToken.tokenVerificationId
@@ -661,6 +672,17 @@ module.exports = function(cfg, server) {
         .then(function(r) {
           t.equal(r.obj.tokenVerificationId, null, 'tokenVerificationId is null')
 
+          // Attempt to verify the key fetch token again
+          return client.postThen('/tokens/' + user.keyFetchToken.tokenVerificationId + '/verify', {
+            uid: user.accountId
+          })
+        })
+        .then(function () {
+          t.fail('Verifying a verified token should have failed')
+        }, function (err) {
+          testNotFound(t, err)
+        })
+        .then(function () {
           // Create a verified key fetch token
           return client.putThen('/keyFetchToken/' + verifiedUser.keyFetchTokenId, verifiedUser.keyFetchToken)
         })
@@ -677,6 +699,17 @@ module.exports = function(cfg, server) {
         .then(function(r) {
           t.equal(r.obj.tokenVerificationId, null, 'tokenVerificationId is null')
 
+          // Attempt to verify the verified key fetch token
+          return client.postThen('/tokens/' + verifiedUser.keyFetchToken.tokenVerificationId + '/verify', {
+            uid: user.accountId
+          })
+        })
+        .then(function () {
+          t.fail('Verifying a verified token should have failed')
+        }, function (err) {
+          testNotFound(t, err)
+        })
+        .then(function () {
           // Delete both key fetch tokens
           return P.all([
             client.delThen('/keyFetchToken/' + user.keyFetchTokenId),
