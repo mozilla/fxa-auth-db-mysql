@@ -43,8 +43,8 @@ There are a number of methods that a DB storage backend should implement:
     * .accountResetToken(id)
     * .deleteAccountResetToken(tokenId)
 * Verification Reminders
-    * .fetchReminders(body, query)
     * .createVerificationReminder(body)
+    * .fetchReminders(body, query)
     * .deleteReminder(body)
 * General
     * .ping()
