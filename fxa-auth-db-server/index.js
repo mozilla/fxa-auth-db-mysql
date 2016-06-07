@@ -22,9 +22,9 @@ function createServer(db) {
     }
   }
 
-  function replyFullRequest(fn) {
+  function replyNoParams(fn) {
     return function (req, res, next) {
-      fn.call(db, req)
+      fn.call(db, req.body, req.query)
         .then(
           handleSuccess.bind(null, req, res),
           handleError.bind(null, req, res)
@@ -131,9 +131,9 @@ function createServer(db) {
   api.post('/passwordForgotToken/:id/update', reply(db.updatePasswordForgotToken))
   api.post('/passwordForgotToken/:id/verified', reply(db.forgotPasswordVerified))
 
-  api.get('/verificationReminders', replyFullRequest(db.fetchReminders))
-  api.post('/verificationReminders', replyFullRequest(db.createVerificationReminder))
-  api.del('/verificationReminders', replyFullRequest(db.deleteReminder))
+  api.get('/verificationReminders', replyNoParams(db.fetchReminders))
+  api.post('/verificationReminders', replyNoParams(db.createVerificationReminder))
+  api.del('/verificationReminders', replyNoParams(db.deleteReminder))
 
   api.get('/emailRecord/:id', reply(db.emailRecord))
   api.head('/emailRecord/:id', reply(db.accountExists))

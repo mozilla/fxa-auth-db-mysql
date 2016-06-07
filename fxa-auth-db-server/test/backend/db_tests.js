@@ -1559,29 +1559,25 @@ module.exports = function(config, DB) {
           function (t) {
             t.plan(3)
             var fetchQuery = {
-              query: {
-                type: 'second',
-                reminderTime: 1,
-                reminderTimeOutdated: 100,
-                limit: 20
-              }
+              type: 'second',
+              reminderTime: 1,
+              reminderTimeOutdated: 100,
+              limit: 20
             }
             var account = createAccount()
             return db.createAccount(account.uid, account)
               .then(
                 function () {
                   return db.createVerificationReminder({
-                    body: {
-                      uid: account.uid,
-                      type: 'second'
-                    }
+                    uid: account.uid,
+                    type: 'second'
                   })
                 }
               )
               .then(
                 function () {
                   return P.delay(20).then(function () {
-                    return db.fetchReminders(fetchQuery)
+                    return db.fetchReminders({}, fetchQuery)
                   })
                 }
               )
@@ -1593,7 +1589,7 @@ module.exports = function(config, DB) {
               )
               .then(
                 function () {
-                  return db.fetchReminders(fetchQuery)
+                  return db.fetchReminders({}, fetchQuery)
                 }
               )
               .then(
