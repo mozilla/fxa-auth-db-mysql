@@ -1621,7 +1621,7 @@ module.exports = function(config, DB) {
               )
               .then(
                 function () {
-                  // create 'second' reminder for account one.
+                  // create 'first' reminder for account one.
                   return db.createVerificationReminder({
                     uid: account.uid,
                     type: 'first'
