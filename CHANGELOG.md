@@ -1,3 +1,27 @@
+0.67.0
+  * fix(deps): update dev dependencies #143
+  * fix(deps): update prod dependencies #144
+  * chore(readme): update travis status badge url
+  * fix(tests): switch coverage tool, add coveralls #145
+  * chore(deps): update to latest request and sinon #148
+  * feat(db): Remove account lockout #147
+  * fix(db): remove createAccountResetToken stored procedure and endpoint #154
+  * refactor(db): remove openId #153
+  * feat(db): Record whether we *must* verify each unverified token #155
+
+0.63.0
+  * feat(db): implement verification state for key fetch tokens #138
+  * chore(travis): drop node 0.12 support #139
+  * feat(reminders): add verification reminders #127
+  * chore(mozlog): update from mozlog@2.0.3 to 2.0.5 #140
+  * chore(scripts): sort scripts alphabetically #140
+  * chore(shrinkwrap): add "npm run shrinkwrap" script #140
+
+0.62.0
+  * feat(mx-stats): Add a script to print stats on popular mail providers #134
+  * feat(db): store push keys according to the current implementation #133
+  * feat(db): implement new token verification logic #132
+
 0.59.0
   * fix(logging): log connection config and charset info at startup #131
   * fix(tests): adjust notifier tests monkeypatching to accept mozlog signature #130
