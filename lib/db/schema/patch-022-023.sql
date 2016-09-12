@@ -6,18 +6,15 @@
 -- * Alters three stored procedures, createDevice, updateDevice and
 --   sessionWithDevice to work with the new columns
 
--- 2-steps callbackPublicKey change: we avoid junk values, and we don't block
--- concurent queries.
+-- 2-steps callbackPublicKey change: we avoid junk values
 
 ALTER TABLE devices
 CHANGE callbackPublicKey oldCallbackPublicKey BINARY(32),
 ADD COLUMN callbackPublicKey CHAR(88),
-ADD COLUMN callbackAuthKey CHAR(24),
-ALGORITHM = INPLACE, LOCK = NONE;
+ADD COLUMN callbackAuthKey CHAR(24);
 
 ALTER TABLE devices
-DROP COLUMN oldCallbackPublicKey,
-ALGORITHM = INPLACE, LOCK = NONE;
+DROP COLUMN oldCallbackPublicKey;
 
 CREATE PROCEDURE `accountDevices_4` (
   IN `inUid` BINARY(16)

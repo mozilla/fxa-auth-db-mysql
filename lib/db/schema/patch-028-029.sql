@@ -5,8 +5,7 @@
 
 -- Add a 'mustVerify' column to unverifiedTokens table.
 ALTER TABLE `unverifiedTokens`
-ADD COLUMN mustVerify BOOLEAN NOT NULL DEFAULT TRUE,
-ALGORITHM = INPLACE, LOCK = NONE;
+ADD COLUMN mustVerify BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Update createSessionToken stored procedure to accept `mustVerify` parameter.
 CREATE PROCEDURE `createSessionToken_4` (
