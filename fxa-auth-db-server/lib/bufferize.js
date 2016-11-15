@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+var HEX_REGEX = /([0-9]|[a-f])/gim
+
+function isHex (input) {
+  return typeof input === 'string' && (input.match(HEX_REGEX) || []).length === input.length
+}
+
 function unbuffer(object) {
   var keys = Object.keys(object)
   for (var i = 0; i < keys.length; i++) {
@@ -21,7 +27,13 @@ function bufferize(object, onlyTheseKeys) {
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i]
     var value = object[key]
-    object[key] = new Buffer(value, 'hex')
+    if (value) {
+      if (! isHex(value)) {
+        throw new Error(key + ' must be a hex value.')
+      }
+      // make sure value is not null before calling new Buffer
+      object[key] = new Buffer(value, 'hex')
+    }
   }
   return object
 }
