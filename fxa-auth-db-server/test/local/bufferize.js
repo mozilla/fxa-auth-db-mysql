@@ -7,7 +7,7 @@ var sinon = require('sinon')
 test(
   'bufferize module',
   function (t) {
-    t.plan(45)
+    t.plan(48)
 
     var bufferize = require('../../lib/bufferize')
     t.type(bufferize, 'object', 'bufferize exports object')
@@ -43,11 +43,12 @@ test(
     result = bufferize.bufferize({
       foo: '00',
       bar: 'ffff',
-      wibble: '00'
-    }, new Set(['foo', 'bar']))
+      wibble: '00',
+      empty: null
+    }, new Set(['foo', 'bar', 'empty']))
 
     t.type(result, 'object', 'bufferize.bufferize returned object')
-    t.equal(Object.keys(result).length, 3, 'bufferize.bufferize returned correct number of properties')
+    t.equal(Object.keys(result).length, 4, 'bufferize.bufferize returned correct number of properties')
     t.ok(Buffer.isBuffer(result.foo), 'bufferize.bufferize returned buffer for 00')
     t.equal(result.foo.length, 1, 'bufferize.bufferize returned correct length for 00')
     t.equal(result.foo[0], 0x00, 'bufferize.bufferize returned correct data for 00')
@@ -56,6 +57,16 @@ test(
     t.equal(result.bar[0], 0xff, 'bufferize.bufferize returned correct first byte for ffff')
     t.equal(result.bar[1], 0xff, 'bufferize.bufferize returned correct second byte for ffff')
     t.equal(result.wibble, '00', 'bufferize.bufferize ignored property not in match list')
+    t.equal(result.empty, null, 'bufferize.bufferize value stayed null as original')
+    t.equal(result.empty, null, 'bufferize.bufferize value stayed null as original')
+
+    t.throws(
+      function () {
+        bufferize.bufferize({
+          nonHex: 'zoo'
+        }, new Set(['nonHex']))
+      },
+      new Error('nonHex must be a hex value'), 'should throw if value is not hex')
 
     var request = {
       body: {
