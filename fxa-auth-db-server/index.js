@@ -67,6 +67,7 @@ function createServer(db) {
   api.del('/account/:id', withIdAndBody(db.deleteAccount))
   api.put('/account/:id', withIdAndBody(db.createAccount))
   api.get('/account/:id/devices', withIdAndBody(db.accountDevices))
+  api.get('/account/:id/web-sessions', withIdAndBody(db.accountWebSessions))
   api.post('/account/:id/checkPassword', withIdAndBody(db.checkPassword))
   api.post('/account/:id/reset', withIdAndBody(db.resetAccount))
   api.post('/account/:id/verifyEmail', withIdAndBody(db.verifyEmail))
