@@ -1841,7 +1841,7 @@ module.exports = function(config, DB) {
                     if (result.length === 2) {
                       found++
                     }
-                  });
+                  })
 
                   t.equal(found, 1, 'only one query has the result')
                 }
