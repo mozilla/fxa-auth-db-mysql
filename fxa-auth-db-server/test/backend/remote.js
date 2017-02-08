@@ -249,7 +249,7 @@ module.exports = function(cfg, server) {
           respOk(t, r)
           var sessions = r.obj
           t.equal(sessions.length, 1, 'sessions contains one item')
-          t.equal(Object.keys(sessions[0]).length, 9, 'session has nine properties')
+          t.equal(Object.keys(sessions[0]).length, 16, 'session has correct properties')
           t.equal(sessions[0].tokenId, user.sessionTokenId, 'tokenId is correct')
           t.equal(sessions[0].uid, user.accountId, 'uid is correct')
           t.equal(sessions[0].createdAt, user.sessionToken.createdAt, 'createdAt is correct')

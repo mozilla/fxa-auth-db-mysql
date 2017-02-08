@@ -257,7 +257,7 @@ module.exports = function(config, DB) {
               })
               .then(function (sessions) {
                 t.equal(sessions.length, 1, 'sessions contains one item')
-                t.equal(Object.keys(sessions[0]).length, 16, 'session has nine properties')
+                t.equal(Object.keys(sessions[0]).length, 16, 'session has correct properties')
                 t.equal(sessions[0].tokenId.toString('hex'), SESSION_TOKEN_ID.toString('hex'), 'tokenId is correct')
                 t.equal(sessions[0].uid.toString('hex'), ACCOUNT.uid.toString('hex'), 'uid is correct')
                 t.equal(sessions[0].createdAt, SESSION_TOKEN.createdAt, 'createdAt is correct')
