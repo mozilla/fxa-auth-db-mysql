@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+'use strict'
+
 var test = require('tap').test
 
 var crypto = require('crypto')
@@ -1114,6 +1116,31 @@ module.exports = function(cfg, server) {
             t.ok(r.obj[0].createdAt <= Date.now(), 'returns { createdAt: Number }')
           }
         )
+    }
+  )
+
+  test(
+    'account preferences',
+    t => {
+      t.plan(9)
+      const user = fake.newUserDataHex()
+      const uid = user.accountId
+      return client.getThen('/account/' + uid + '/preferences')
+        .then(r => {
+          respOk(t, r)
+          t.equal(r.obj.signinConfirmation, 0)
+          return client.postThen('/account/' + uid + '/preferences', {
+            signinConfirmation: 1
+          })
+        })
+        .then(r => {
+          respOkEmpty(t, r)
+          return client.getThen('/account/' + uid + '/preferences')
+        })
+        .then(r => {
+          respOk(t, r)
+          t.equal(r.obj.signinConfirmation, 1)
+        })
     }
   )
 
