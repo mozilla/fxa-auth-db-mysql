@@ -72,6 +72,8 @@ function createServer(db) {
   api.post('/account/:id/verifyEmail', withIdAndBody(db.verifyEmail))
   api.post('/account/:id/locale', withIdAndBody(db.updateLocale))
   api.get('/account/:id/sessions', withIdAndBody(db.sessions))
+  api.get('/account/:id/preferences', withIdAndBody(db.getAccountPreferences))
+  api.post('/account/:id/preferences', withIdAndBody(db.setAccountPreferences))
 
   api.get('/sessionToken/:id', withIdAndBody(db.sessionToken))
   api.del('/sessionToken/:id', withIdAndBody(db.deleteSessionToken))
