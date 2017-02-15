@@ -1,6 +1,10 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+
+process.env.PRUNE_TOKENS_MAX_AGE = 24 * 60 * 60 * 1000 // one day setting for tests
+var TOKEN_PRUNE_AGE = 24 * 60 * 60 * 1000 * 2 // two days
+
 var crypto = require('crypto')
 var dbServer = require('../../fxa-auth-db-server')
 var test = require('tap').test
@@ -9,7 +13,6 @@ var DB = require('../../lib/db/mysql')(log, dbServer.errors)
 var fake = require('../../fxa-auth-db-server/test/fake')
 var config = require('../../config')
 
-var TOKEN_NEW_AGE = 2 * 24 * 60 * 60 * 1000 // 2 days
 
 DB.connect(config)
   .then(
@@ -31,7 +34,7 @@ DB.connect(config)
       test(
         'prune tokens',
         function (t) {
-          t.plan(13)
+          t.plan(14)
           var user = fake.newUserDataBuffer()
           var unblockCode = crypto.randomBytes(4).toString('hex')
           return db.createAccount(user.accountId, user.account)
@@ -47,7 +50,7 @@ DB.connect(config)
             .then(function() {
               // now set it to be older than prune date
               var sql = 'UPDATE accountResetTokens SET createdAt = createdAt - ? WHERE tokenId = ?'
-              return db.write(sql, [TOKEN_NEW_AGE, user.accountResetTokenId])
+              return db.write(sql, [TOKEN_PRUNE_AGE, user.accountResetTokenId])
             })
             .then(function(sdf) {
               return db.createPasswordForgotToken(user.passwordForgotTokenId, user.passwordForgotToken)
@@ -55,12 +58,40 @@ DB.connect(config)
             .then(function() {
               // now set it to be older than prune date
               var sql = 'UPDATE passwordForgotTokens SET createdAt = createdAt - ? WHERE tokenId = ?'
-              return db.write(sql, [TOKEN_NEW_AGE, user.passwordForgotTokenId])
+              return db.write(sql, [TOKEN_PRUNE_AGE, user.passwordForgotTokenId])
             })
             .then(function() {
               // now set it to be older than prune date
               var sql = 'UPDATE unblockCodes SET createdAt = createdAt - ? WHERE uid = ?'
-              return db.write(sql, [3, user.accountId])
+              return db.write(sql, [TOKEN_PRUNE_AGE, user.accountId])
+            })
+            // check token exist
+            .then(function() {
+              // now check that all tokens for this uid have been deleted
+              return db.accountResetToken(user.accountResetTokenId)
+            })
+            .then(function() {
+              t.ok('accountResetToken exists')
+            }, function(err) {
+              t.fail('accountResetToken should still exist')
+            })
+            .then(function() {
+              return db.passwordForgotToken(user.passwordForgotTokenId)
+            })
+            .then(function() {
+              t.ok('passwordForgotToken exists')
+            }, function(err) {
+              t.fail('passwordForgotToken should still exist')
+            })
+            .then(function() {
+              var sql = 'SELECT * FROM unblockCodes WHERE uid = ?'
+              return db.read(sql, [user.accountId])
+            })
+            .then(function(res) {
+              t.ok('Unblock code exists')
+              t.equal(res[0].uid.toString('hex'), user.accountId.toString('hex'))
+            }, function(err) {
+              t.fail('no errors during the unblock query')
             })
             .then(function() {
               // prune older tokens
@@ -91,15 +122,10 @@ DB.connect(config)
             })
             .then(function() {
               var sql = 'SELECT * FROM unblockCodes WHERE uid = ?'
-              return db.readFirstResult(sql, [Buffer(user.accountId)])
+              return db.read(sql, [user.accountId])
             })
-            .then(function() {
-              t.fail('The above readFirstResult() should not find the unblock code')
-            }, function(err) {
-              t.equal(err.code, 404, 'readFirstResult() fails with the correct code')
-              t.equal(err.errno, 116, 'readFirstResult() fails with the correct errno')
-              t.equal(err.error, 'Not Found', 'readFirstResult() fails with the correct error')
-              t.equal(err.message, 'Not Found', 'readFirstResult() fails with the correct message')
+            .then(function(res) {
+              t.equal(res.length, 0, 'no unblock codes for that user')
             })
             .then(function(token) {
               t.pass('No errors found during tests')
