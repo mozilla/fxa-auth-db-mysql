@@ -223,7 +223,7 @@ module.exports = function(config, DB) {
         test(
           'session token handling',
           function (t) {
-            t.plan(113)
+            t.plan(123)
 
             var VERIFIED_SESSION_TOKEN_ID = hex32()
             var UNVERIFIED_SESSION_TOKEN_ID = hex32()
@@ -466,10 +466,16 @@ module.exports = function(config, DB) {
                 // Create an unverified session token
                 return db.createSessionToken(UNVERIFIED_SESSION_TOKEN_ID, UNVERIFIED_SESSION_TOKEN)
               })
-              .then(function(results) {
+              .then(function() {
                 // Create a device
                 return db.createDevice(ACCOUNT.uid, DEVICE_ID, {
-                  sessionTokenId: SESSION_TOKEN_ID
+                  sessionTokenId: SESSION_TOKEN_ID,
+                  name: 'Test Device',
+                  type: 'mobile',
+                  createdAt: Date.now(),
+                  callbackURL: 'https://push.server',
+                  callbackPublicKey: 'foo',
+                  callbackAuthKey: 'bar'
                 })
               })
               .then(function() {
@@ -478,6 +484,27 @@ module.exports = function(config, DB) {
               })
               .then(function(results) {
                 t.equal(results.length, 1, 'Account has one device')
+
+                // Fetch devices for the account
+                return db.sessions(ACCOUNT.uid)
+              })
+              .then(function(sessions) {
+                // by default sessions are not sorted
+                sessions.sort(function(s1, s2) {
+                  return s1.createdAt - s2.createdAt
+                })
+
+                t.equal(sessions.length, 3, 'sessions contains correct number of items')
+                // the next session has a device attached to it
+                t.equal(sessions[0].deviceId.toString('hex'), DEVICE_ID.toString('hex'))
+                t.equal(sessions[0].deviceName, 'Test Device')
+                t.equal(sessions[0].deviceType, 'mobile')
+                t.ok(sessions[0].deviceCreatedAt)
+                t.equal(sessions[0].deviceCallbackURL, 'https://push.server')
+                t.equal(sessions[0].deviceCallbackPublicKey, 'foo')
+                t.equal(sessions[0].deviceCallbackAuthKey, 'bar')
+                t.equal(sessions[1].deviceId, null)
+                t.equal(sessions[2].deviceId, null)
 
                 // Delete all three session tokens
                 return P.all([

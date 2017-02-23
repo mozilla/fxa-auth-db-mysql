@@ -195,7 +195,7 @@ module.exports = function(cfg, server) {
   test(
     'session token handling',
     function (t) {
-      t.plan(141)
+      t.plan(160)
       var user = fake.newUserDataHex()
       var verifiedUser = fake.newUserDataHex()
       delete verifiedUser.sessionToken.tokenVerificationId
@@ -468,6 +468,30 @@ module.exports = function(cfg, server) {
           respOk(t, r)
           t.equal(r.obj.length, 1, 'account has one device')
 
+          // Fetch the session again to make sure device info is included
+          return client.getThen('/account/' + user.accountId + '/sessions')
+        })
+        .then(function(r) {
+          respOk(t, r)
+          var sessions = r.obj
+          t.equal(sessions.length, 1, 'sessions still contains one item')
+          var s = sessions[0]
+          t.ok(s.createdAt)
+          t.equal(s.deviceCallbackAuthKey.length, 22)
+          t.ok(s.deviceCallbackPublicKey)
+          t.equal(s.deviceCallbackURL, 'fake callback URL')
+          t.ok(s.deviceCreatedAt)
+          t.ok(s.deviceId)
+          t.equal(s.deviceName, 'fake device name')
+          t.equal(s.deviceType, 'fake device type')
+          t.ok(s.lastAccessTime)
+          t.ok(s.tokenId)
+          t.ok(s.uaBrowser)
+          t.ok(s.uaBrowserVersion)
+          t.ok(s.uaDeviceType)
+          t.ok(s.uaOS)
+          t.ok(s.uaOSVersion)
+          t.ok(s.uid)
           // Delete both session tokens
           return P.all([
             client.delThen('/sessionToken/' + user.sessionTokenId),
