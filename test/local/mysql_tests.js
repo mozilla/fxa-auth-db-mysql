@@ -378,6 +378,87 @@ DB.connect(config)
       )
 
       test(
+        'account email',
+        function (t) {
+          var uid = crypto.randomBytes(16)
+          var accountEmailCode = Buffer.from('00000000000000000000000000000001', 'hex')
+          var account = {
+            uid: uid,
+            email: ('' + Math.random()).substr(2) + '@bar.com',
+            emailCode: accountEmailCode,
+            emailVerified: false,
+            verifierVersion: 1,
+            verifyHash: zeroBuffer32,
+            authSalt: zeroBuffer32,
+            kA: zeroBuffer32,
+            wrapWrapKb: zeroBuffer32,
+            verifierSetAt: now,
+            createdAt: now,
+            locale : 'en_US',
+          }
+          account.normalizedEmail = account.email.toLowerCase()
+
+          var secondEmailCode = Buffer.from('00000000000000000000000000000002', 'hex')
+          var secondEmail = {
+            email: ('' + Math.random()).substr(2) + '@bar.com',
+            uid: uid,
+            emailCode: secondEmailCode,
+            isVerified: false,
+            isPrimary: false,
+            createdAt: Date.now()
+          }
+          secondEmail.normalizedEmail = secondEmail.email.toLowerCase()
+
+          return db.createAccount(uid, account)
+            .then(
+              function(result) {
+                t.deepEqual(result, {}, 'Returned an empty object on account creation')
+                return db.createEmail(uid, secondEmail)
+              }
+            )
+            .then(
+              function(result) {
+                t.deepEqual(result, {}, 'Returned an empty object on email creation')
+                return db.accountEmails(uid)
+              }
+            )
+            .then(
+              function(result) {
+                t.equal(result.length, 2, 'two emails returned')
+
+                // Verify first email is email from accounts table
+                t.equal(result[0].email, account.email, 'matches account email')
+                t.equal(result[0].isPrimary, 1, 'isPrimary is true on account email')
+                t.equal(!!result[0].isVerified, account.emailVerified, 'matches account emailVerified')
+
+                // Verify second email is from emails table
+                t.equal(result[1].email, secondEmail.email, 'matches secondEmail email')
+                t.equal(result[1].isPrimary, 0, 'isPrimary is false on secondEmail email')
+                t.equal(!!result[1].isVerified, secondEmail.isVerified, 'matches secondEmail isVerified')
+
+                return db.deleteEmail(secondEmail.normalizedEmail)
+              }
+            )
+            .then(
+              function(result) {
+                t.deepEqual(result, {}, 'Returned an empty object on email deletion')
+                return db.accountEmails(uid)
+              }
+            )
+            .then(
+              function(result) {
+                t.equal(result.length, 1, 'one email returned')
+
+                // Verify first email is email from accounts table
+                t.equal(result[0].email, account.email, 'matches account email')
+                t.equal(result[0].isPrimary, 1, 'isPrimary is true on account email')
+                t.equal(!!result[0].isVerified, account.emailVerified, 'matches account emailVerified')
+              }
+            )
+        }
+      )
+
+      test(
         'teardown',
         function (t) {
           return db.close()
