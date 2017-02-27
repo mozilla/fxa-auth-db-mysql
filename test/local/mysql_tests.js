@@ -428,12 +428,12 @@ DB.connect(config)
 
                 // Verify first email is email from accounts table
                 t.equal(result[0].email, account.email, 'matches account email')
-                t.equal(result[0].isPrimary, 1, 'isPrimary is true on account email')
+                t.equal(!!result[0].isPrimary, true, 'isPrimary is true on account email')
                 t.equal(!!result[0].isVerified, account.emailVerified, 'matches account emailVerified')
 
                 // Verify second email is from emails table
                 t.equal(result[1].email, secondEmail.email, 'matches secondEmail email')
-                t.equal(result[1].isPrimary, 0, 'isPrimary is false on secondEmail email')
+                t.equal(!!result[1].isPrimary, false, 'isPrimary is false on secondEmail email')
                 t.equal(!!result[1].isVerified, secondEmail.isVerified, 'matches secondEmail isVerified')
 
                 return db.deleteEmail(secondEmail.normalizedEmail)
@@ -451,7 +451,7 @@ DB.connect(config)
 
                 // Verify first email is email from accounts table
                 t.equal(result[0].email, account.email, 'matches account email')
-                t.equal(result[0].isPrimary, 1, 'isPrimary is true on account email')
+                t.equal(!!result[0].isPrimary, true, 'isPrimary is true on account email')
                 t.equal(!!result[0].isVerified, account.emailVerified, 'matches account emailVerified')
               }
             )

@@ -159,4 +159,30 @@ BEGIN
   COMMIT;
 END;
 
+
+CREATE PROCEDURE `verifyEmail_4`(
+    IN `inUid` BINARY(16),
+    IN `inEmailCode` BINARY(16)
+)
+BEGIN
+    SET @updatedCount = 0;
+
+    IF (inEmailCode IS NULL) THEN
+        -- To help maintain some backwards compatibility, if the `inEmailCode` is
+        -- not specified, fallback to previous functionality which is to verify
+        -- the account email.
+		UPDATE accounts SET emailVerified = true WHERE uid = inUid;
+    ELSE
+        UPDATE accounts SET emailVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
+
+		SELECT ROW_COUNT() INTO @updatedCount;
+
+		-- If no rows were updated in the accounts table, this code could
+		-- belong to an email in the emails table. Attempt to verify it.
+		IF @updatedCount = 0 THEN
+			UPDATE emails SET isVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
+		END IF;
+    END IF;
+END
+
 UPDATE dbMetadata SET value = '45' WHERE name = 'schema-patch-level';

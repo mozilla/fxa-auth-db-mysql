@@ -2,6 +2,7 @@
 -- DROP PROCEDURE `accountEmails_1`;
 -- DROP PROCEDURE `deleteEmail_1`;
 -- DROP PROCEDURE `deleteAccount_12`;
+-- DROP PROCEDURE `verifyEmail_4`;
 
 -- DROP TABLE `emails`;
 
