@@ -183,6 +183,6 @@ BEGIN
 			UPDATE emails SET isVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
 		END IF;
     END IF;
-END
+END;
 
 UPDATE dbMetadata SET value = '45' WHERE name = 'schema-patch-level';
