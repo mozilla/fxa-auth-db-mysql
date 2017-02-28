@@ -2111,7 +2111,7 @@ module.exports = function(config, DB) {
                   t.equal(!!result[1].isVerified, true, 'secondEmail isVerified is true')
 
                   // Remove additional email from account
-                  return db.deleteEmail(secondEmail.email)
+                  return db.deleteEmail(secondEmail.uid, secondEmail.email)
                 }
               )
               .then(
@@ -2177,7 +2177,7 @@ module.exports = function(config, DB) {
                 t.equal(err.code, 409, 'should return duplicate entry code')
 
                 // Attempt to delete an email that is on the account table
-                return db.deleteEmail(account.normalizedEmail)
+                return db.deleteEmail(account.uid, account.normalizedEmail)
               })
               .catch(function (err) {
                 t.equal(err.errno, 150, 'should return email delete errno')

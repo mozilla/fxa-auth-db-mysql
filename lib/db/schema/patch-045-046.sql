@@ -96,32 +96,27 @@ BEGIN
 END;
 
 CREATE PROCEDURE `deleteEmail_1` (
+    IN `inUid` BINARY(16),
     IN `inNormalizedEmail` VARCHAR(255)
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+    SET @deletedCount = 0;
+    SET @isPrimary = 0;
 
-    START TRANSACTION;
+    -- Don't delete any email that are considered primary emails.
+    -- Since this should be the most common scenario, we try it first
+    DELETE FROM emails WHERE normalizedEmail = inNormalizedEmail AND uid = inUid AND isPrimary = 0;
 
-    -- Don't delete any email that are considered primary emails
-	SET @isPrimary = 0;
-    SELECT COUNT(*) INTO @isPrimary FROM accounts WHERE normalizedEmail = inNormalizedEmail;
-    IF @isPrimary > 0 THEN
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Can not delete a primary email address.';
+    -- Check to see if no rows were deleted, if this is the case, check to see if user
+    -- is attempting to deleted the email in the account table.
+    SELECT ROW_COUNT() INTO @deletedCount;
+    IF @deletedCount = 0 THEN
+      SELECT COUNT(*) INTO @isPrimary FROM accounts WHERE normalizedEmail = inNormalizedEmail AND uid = inUid;
+
+      IF @isPrimary = 1 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Can not delete a primary email address.';
+      END IF;
     END IF;
-
-	SELECT COUNT(*) INTO @isPrimary FROM emails WHERE normalizedEmail = inNormalizedEmail AND isPrimary = 1;
-    IF @isPrimary > 0 THEN
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Can not delete a primary email address.';
-    END IF;
-
-	DELETE FROM emails WHERE normalizedEmail = inNormalizedEmail;
-
-    COMMIT;
 END;
 
 CREATE PROCEDURE `deleteAccount_12`(
@@ -185,14 +180,6 @@ CREATE PROCEDURE `createAccount_6`(
     IN `inLocale` VARCHAR(255)
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-
     -- Check to see if the normalizedEmail exists in the emails table before creating a new user
     -- with this email.
     SET @emailExists = 0;
@@ -231,8 +218,6 @@ BEGIN
         inCreatedAt,
         inLocale
     );
-
-    COMMIT;
 END;
 
 UPDATE dbMetadata SET value = '46' WHERE name = 'schema-patch-level';
