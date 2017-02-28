@@ -880,7 +880,7 @@ module.exports = function(config, DB) {
             var emailBuffer = Buffer(ACCOUNT.email)
             return db.emailRecord(emailBuffer)
             .then(function(emailRecord) {
-              return db.verifyEmail(emailRecord.uid)
+              return db.verifyEmail(emailRecord.uid, emailRecord.emailCode)
             })
             .then(function(result) {
               t.deepEqual(result, {}, 'Returned an empty object email verification')
@@ -901,7 +901,7 @@ module.exports = function(config, DB) {
               t.equal(account.locale, 'en_NZ', 'account should now have new locale')
 
               // test verifyEmail for a non-existant account
-              return db.verifyEmail(newUuid())
+              return db.verifyEmail(newUuid(), account.emailCode)
             })
             .then(function(res) {
               t.deepEqual(res, {}, 'No matter what happens, we get an empty object back')
@@ -2142,6 +2142,7 @@ module.exports = function(config, DB) {
                    *
                    * 1) Can not add an an email that exits in emails table or accounts table
                    * 2) Can not delete primary email
+                   * 3) TODO Can not create an new account that has an email in the emails table
                    */
 
                   // Attempt to add the account email to the emails table.

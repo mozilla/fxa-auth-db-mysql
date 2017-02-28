@@ -78,7 +78,6 @@ function createServer(db) {
   api.get('/account/:id/sessions', withIdAndBody(db.sessions))
 
   api.get('/account/:id/emails', withIdAndBody(db.accountEmails))
-  api.put('/account/:id/emails', withIdAndBody(db.createEmail))
   api.post('/account/:id/emails', withIdAndBody(db.createEmail))
   api.del('/account/:id/emails/:email',
     op(function (req) {

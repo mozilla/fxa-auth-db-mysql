@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS emails (
   isVerified BOOLEAN NOT NULL DEFAULT FALSE,
   isPrimary BOOLEAN NOT NULL DEFAULT FALSE,
   verifiedAt BIGINT UNSIGNED,
-  createdAt BIGINT UNSIGNED NOT NULL
+  createdAt BIGINT UNSIGNED NOT NULL,
+  INDEX `uid` (`uid`)
 ) ENGINE=InnoDB;
 
 DROP procedure IF EXISTS `createEmail_1`;
@@ -25,20 +26,12 @@ CREATE PROCEDURE `createEmail_1` (
     IN `createdAt` BIGINT UNSIGNED
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-
     -- Currently, can not add an email that is specified in the
     -- accounts table, regardless of verification state.
     SET @emailExists = 0;
     SELECT COUNT(*) INTO @emailExists FROM accounts a WHERE a.normalizedEmail = normalizedEmail;
     IF @emailExists > 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Email already exists in accounts table.';
+        SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1062, MESSAGE_TEXT = 'Email already exists in accounts table.';
     END IF;
 
     INSERT INTO emails(
@@ -131,8 +124,6 @@ BEGIN
     COMMIT;
 END;
 
-DROP procedure IF EXISTS `deleteAccount_12`;
-
 CREATE PROCEDURE `deleteAccount_12`(
   IN `uidArg` BINARY(16)
 )
@@ -167,22 +158,81 @@ CREATE PROCEDURE `verifyEmail_4`(
 BEGIN
     SET @updatedCount = 0;
 
-    IF (inEmailCode IS NULL) THEN
-        -- To help maintain some backwards compatibility, if the `inEmailCode` is
-        -- not specified, fallback to previous functionality which is to verify
-        -- the account email.
-		UPDATE accounts SET emailVerified = true WHERE uid = inUid;
-    ELSE
-        UPDATE accounts SET emailVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
+    UPDATE accounts SET emailVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
 
-		SELECT ROW_COUNT() INTO @updatedCount;
+    SELECT ROW_COUNT() INTO @updatedCount;
 
-		-- If no rows were updated in the accounts table, this code could
-		-- belong to an email in the emails table. Attempt to verify it.
-		IF @updatedCount = 0 THEN
-			UPDATE emails SET isVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
-		END IF;
+    -- If no rows were updated in the accounts table, this code could
+    -- belong to an email in the emails table. Attempt to verify it.
+    IF @updatedCount = 0 THEN
+        UPDATE emails SET isVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
     END IF;
+END;
+
+CREATE PROCEDURE `createAccount_6`(
+    IN `inUid` BINARY(16) ,
+    IN `inNormalizedEmail` VARCHAR(255),
+    IN `inEmail` VARCHAR(255),
+    IN `inEmailCode` BINARY(16),
+    IN `inEmailVerified` TINYINT(1),
+    IN `inKA` BINARY(32),
+    IN `inWrapWrapKb` BINARY(32),
+    IN `inAuthSalt` BINARY(32),
+    IN `inVerifierVersion` TINYINT UNSIGNED,
+    IN `inVerifyHash` BINARY(32),
+    IN `inVerifierSetAt` BIGINT UNSIGNED,
+    IN `inCreatedAt` BIGINT UNSIGNED,
+    IN `inLocale` VARCHAR(255)
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    -- Check to see if the normalizedEmail exists in the emails table before creating a new user
+    -- with this email.
+    SET @emailExists = 0;
+    SELECT COUNT(*) INTO @emailExists FROM emails WHERE normalizedEmail = inNormalizedEmail;
+    IF @emailExists > 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unable to create user, email used belongs to another user.';
+    END IF;
+
+    INSERT INTO accounts(
+        uid,
+        normalizedEmail,
+        email,
+        emailCode,
+        emailVerified,
+        kA,
+        wrapWrapKb,
+        authSalt,
+        verifierVersion,
+        verifyHash,
+        verifierSetAt,
+        createdAt,
+        locale
+    )
+    VALUES(
+        inUid,
+        LOWER(inNormalizedEmail),
+        inEmail,
+        inEmailCode,
+        inEmailVerified,
+        inKA,
+        inWrapWrapKb,
+        inAuthSalt,
+        inVerifierVersion,
+        inVerifyHash,
+        inVerifierSetAt,
+        inCreatedAt,
+        inLocale
+    );
+
+    COMMIT;
 END;
 
 UPDATE dbMetadata SET value = '46' WHERE name = 'schema-patch-level';
