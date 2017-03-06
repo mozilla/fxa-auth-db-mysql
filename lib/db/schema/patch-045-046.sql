@@ -92,7 +92,8 @@ BEGIN
     FROM
         emails e
     WHERE
-        uid = LOWER(inUid));
+        uid = LOWER(inUid))
+    ORDER BY createdAt;
 END;
 
 CREATE PROCEDURE `deleteEmail_1` (
