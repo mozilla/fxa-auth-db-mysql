@@ -41,7 +41,7 @@ function createEmail(data) {
   var email = {
     email: ('' + Math.random()).substr(2) + '@bar.com',
     uid: data.uid,
-    emailCode: data.emailCode || crypto.randomBytes(16).toString('hex'),
+    emailCode: data.emailCode || crypto.randomBytes(16),
     isVerified: false,
     isPrimary: false,
     createdAt: Date.now()
@@ -2142,7 +2142,7 @@ module.exports = function(config, DB) {
                    *
                    * 1) Can not add an an email that exits in emails table or accounts table
                    * 2) Can not delete primary email
-                   * 3) TODO Can not create an new account that has an email in the emails table
+                   * 3) Can not create an new account that has an email in the emails table
                    */
 
                   // Attempt to add the account email to the emails table.
@@ -2165,23 +2165,39 @@ module.exports = function(config, DB) {
                   .then(function (result) {
                     t.deepEqual(result, {}, 'Returned an empty object on email creation')
                     return db.createEmail(account.uid, anotherEmail)
+                      .then(function () {
+                        t.fail('Failed to throw error for creating an already existing email.')
+                      })
                   })
               })
-              .then(
-                function() {
-                  t.fail('Failed to throw error for creating an already existing email.')
-                }
-              )
               .catch(function (err) {
                 t.equal(err.errno, 101, 'should return duplicate entry errno')
                 t.equal(err.code, 409, 'should return duplicate entry code')
 
                 // Attempt to delete an email that is on the account table
                 return db.deleteEmail(account.uid, account.normalizedEmail)
+                  .then(function () {
+                    t.fail('Failed to not delete an email in the account table.')
+                  })
               })
               .catch(function (err) {
                 t.equal(err.errno, 150, 'should return email delete errno')
                 t.equal(err.code, 400, 'should return email delete code')
+
+                // Attempt to create a new account with an existing email in the emails table
+                const anotherAccount = createAccount()
+                anotherAccount.email = secondEmail.email
+                anotherAccount.normalizedEmail = secondEmail.normalizedEmail
+                anotherAccount.emailVerified = true
+
+                return db.createAccount(anotherAccount.uid, anotherAccount)
+                  .then(function () {
+                    t.fail('Failed to not created account with duplicate email')
+                  })
+                  .catch(function (err) {
+                    t.equal(err.errno, 101, 'should return duplicate entry errno')
+                    t.equal(err.code, 409, 'should return duplicate entry code')
+                  })
               })
               .done(
                 () => {

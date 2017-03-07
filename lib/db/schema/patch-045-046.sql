@@ -186,7 +186,7 @@ BEGIN
     SET @emailExists = 0;
     SELECT COUNT(*) INTO @emailExists FROM emails WHERE normalizedEmail = inNormalizedEmail;
     IF @emailExists > 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unable to create user, email used belongs to another user.';
+        SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1062, MESSAGE_TEXT = 'Unable to create user, email used belongs to another user.';
     END IF;
 
     INSERT INTO accounts(
