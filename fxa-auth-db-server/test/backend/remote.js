@@ -1224,7 +1224,7 @@ module.exports = function(cfg, server) {
         .then(
           function (r) {
             respOkEmpty(t, r)
-            return client.getThen('/emailBounces/' + email)
+            return client.getThen('/emailBounces/' + Buffer(email).toString('hex'))
           }
         )
         .then(
