@@ -2033,7 +2033,7 @@ module.exports = function(config, DB) {
             })
 
             /**
-             * This sequence of tests the happy path of adding an
+             * This sequence of tests, test the happy path of adding an
              * additional email.
              *
              * 1) Create an account

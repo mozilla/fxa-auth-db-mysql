@@ -117,7 +117,7 @@ BEGIN
     DELETE FROM emails WHERE normalizedEmail = inNormalizedEmail AND uid = inUid AND isPrimary = 0;
 
     -- Check to see if no rows were deleted, if this is the case, check to see if user
-    -- is attempting to deleted the email in the account table.
+    -- is attempting to delete the email in the account table.
     SELECT ROW_COUNT() INTO @deletedCount;
     IF @deletedCount = 0 THEN
       SELECT COUNT(*) INTO @isPrimary FROM accounts WHERE normalizedEmail = inNormalizedEmail AND uid = inUid;
@@ -160,6 +160,14 @@ CREATE PROCEDURE `verifyEmail_4`(
     IN `inEmailCode` BINARY(16)
 )
 BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
     SET @updatedCount = 0;
 
     UPDATE accounts SET emailVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
@@ -171,6 +179,8 @@ BEGIN
     IF @updatedCount = 0 THEN
         UPDATE emails SET isVerified = true WHERE uid = inUid AND emailCode = inEmailCode;
     END IF;
+
+    COMMIT;
 END;
 
 CREATE PROCEDURE `createAccount_6`(
