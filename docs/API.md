@@ -249,7 +249,6 @@ Returns:
       * uid - (Buffer16) uid of the user
       * isVerified - (number) 0|1 flag for whether or not email is verified
       * isPrimary - (number) 0|1 flag for whether or not email is primary email
-      * createdAt - (number) date account was created with `Date.now()`
 
     Returns:
 
@@ -264,7 +263,7 @@ Returns:
 
     Parameters:
 
-    * `uid` - (Buffer16) the uid of the account to get emails for
+    * `uid` - (Buffer16) the uid of the account to delete emails for
     * `email` - (string) the email to delete from user account
 
     Returns:

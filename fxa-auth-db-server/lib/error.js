@@ -55,7 +55,7 @@ AppError.cannotDeletePrimaryEmail = function () {
     {
       code: 400,
       error: 'Bad request',
-      errno: 150,
+      errno: 136,
       message: 'Can not delete primary email'
     }
   )

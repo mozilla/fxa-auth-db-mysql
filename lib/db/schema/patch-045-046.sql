@@ -2,7 +2,8 @@
 -- create, get and delete them.
 
 CREATE TABLE IF NOT EXISTS emails (
-  normalizedEmail VARCHAR(255) NOT NULL PRIMARY KEY,
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  normalizedEmail VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
   uid BINARY(16) NOT NULL,
   emailCode BINARY(16) NOT NULL,
@@ -10,10 +11,9 @@ CREATE TABLE IF NOT EXISTS emails (
   isPrimary BOOLEAN NOT NULL DEFAULT FALSE,
   verifiedAt BIGINT UNSIGNED,
   createdAt BIGINT UNSIGNED NOT NULL,
-  INDEX `uid` (`uid`)
+  UNIQUE KEY (`normalizedEmail`),
+  INDEX `emails_uid` (`uid`)
 ) ENGINE=InnoDB;
-
-DROP procedure IF EXISTS `createEmail_1`;
 
 CREATE PROCEDURE `createEmail_1` (
     IN `normalizedEmail` VARCHAR(255),
@@ -26,6 +26,14 @@ CREATE PROCEDURE `createEmail_1` (
     IN `createdAt` BIGINT UNSIGNED
 )
 BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
     -- Currently, can not add an email that is specified in the
     -- accounts table, regardless of verification state.
     SET @emailExists = 0;
@@ -76,7 +84,7 @@ BEGIN
     FROM
         accounts a
     WHERE
-        uid = LOWER(inUid))
+        uid = inUid)
 
     UNION ALL
 
@@ -92,7 +100,7 @@ BEGIN
     FROM
         emails e
     WHERE
-        uid = LOWER(inUid))
+        uid = inUid)
     ORDER BY createdAt;
 END;
 
@@ -115,7 +123,7 @@ BEGIN
       SELECT COUNT(*) INTO @isPrimary FROM accounts WHERE normalizedEmail = inNormalizedEmail AND uid = inUid;
 
       IF @isPrimary = 1 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Can not delete a primary email address.';
+        SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 2100, MESSAGE_TEXT = 'Can not delete a primary email address.';
       END IF;
     END IF;
 END;
@@ -181,6 +189,14 @@ CREATE PROCEDURE `createAccount_6`(
     IN `inLocale` VARCHAR(255)
 )
 BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
     -- Check to see if the normalizedEmail exists in the emails table before creating a new user
     -- with this email.
     SET @emailExists = 0;
@@ -219,6 +235,8 @@ BEGIN
         inCreatedAt,
         inLocale
     );
+
+    COMMIT;
 END;
 
 UPDATE dbMetadata SET value = '46' WHERE name = 'schema-patch-level';

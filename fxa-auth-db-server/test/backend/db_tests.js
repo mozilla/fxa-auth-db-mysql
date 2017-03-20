@@ -2181,7 +2181,7 @@ module.exports = function(config, DB) {
                   })
               })
               .catch(function (err) {
-                t.equal(err.errno, 150, 'should return email delete errno')
+                t.equal(err.errno, 136, 'should return email delete errno')
                 t.equal(err.code, 400, 'should return email delete code')
 
                 // Attempt to create a new account with an existing email in the emails table
