@@ -201,7 +201,7 @@ module.exports = function(cfg, server) {
           t.equal(!!result[0].isVerified, !!user.account.emailVerified, 'matches account emailVerified')
 
           // Attempt to get a specific email
-          return client.getThen('/account/emails/' + thirdEmailRecord.email)
+          return client.getThen('/account/emails/' + emailToHex(thirdEmailRecord.email))
         })
         .then(function (r) {
           respOk(t, r)

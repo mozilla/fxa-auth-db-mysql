@@ -2103,7 +2103,7 @@ module.exports = function(config, DB) {
                   t.equal(!!result[1].isVerified, secondEmail.isVerified, 'matches secondEmail isVerified')
 
                   // Get a specific email
-                  return db.getEmail(secondEmail.email)
+                  return db.getEmail(Buffer(secondEmail.email))
                 }
               )
               .then(
@@ -2225,7 +2225,7 @@ module.exports = function(config, DB) {
               })
               .then(() => {
                 // Attempt to get a non-existent email
-                return db.getEmail('non-existent@email.com')
+                return db.getEmail(Buffer('non-existent@email.com'))
                   .then(() => {
                     t.fail('Failed to not get a non-existent email')
                   })
