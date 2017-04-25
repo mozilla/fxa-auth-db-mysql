@@ -2052,7 +2052,7 @@ module.exports = function(config, DB) {
              * 2) Get `accountEmails` only returns email on account table
              * 3) Add an additional email
              * 4) Get `accountEmails` returns both emails
-             * 5) Get `getEmail` returns specified email on email table
+             * 5) Get `getSecondaryEmail` returns specified email on emails table
              * 5) Verify secondary email
              * 6) Get `accountEmails` returns both emails, shows verified
              * 7) Delete secondary email
@@ -2103,7 +2103,7 @@ module.exports = function(config, DB) {
                   t.equal(!!result[1].isVerified, secondEmail.isVerified, 'matches secondEmail isVerified')
 
                   // Get a specific email
-                  return db.getEmail(Buffer(secondEmail.email))
+                  return db.getSecondaryEmail(secondEmail.email)
                 }
               )
               .then(
@@ -2225,7 +2225,7 @@ module.exports = function(config, DB) {
               })
               .then(() => {
                 // Attempt to get a non-existent email
-                return db.getEmail(Buffer('non-existent@email.com'))
+                return db.getSecondaryEmail('non-existent@email.com')
                   .then(() => {
                     t.fail('Failed to not get a non-existent email')
                   })

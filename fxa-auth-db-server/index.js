@@ -89,7 +89,11 @@ function createServer(db) {
       return db.deleteEmail(req.params.id, req.params.email)
     })
   )
-  api.get('/account/emails/:id', withIdAndBody(db.getEmail))
+  api.get('/account/emails/:email',
+    op(function (req) {
+      return db.getSecondaryEmail(Buffer(req.params.email, 'hex'))
+    })
+  )
 
   api.get('/sessionToken/:id', withIdAndBody(db.sessionToken))
   api.del('/sessionToken/:id', withIdAndBody(db.deleteSessionToken))

@@ -1,6 +1,7 @@
--- Add ability to get a specific email
+-- Add ability to get a specific email on the emails table
+-- Differs from `emailRecord` that returns a filtered account object
 
-CREATE PROCEDURE `getEmail_1` (
+CREATE PROCEDURE `getSecondaryEmail_1` (
     IN `email` VARCHAR(255)
 )
 BEGIN

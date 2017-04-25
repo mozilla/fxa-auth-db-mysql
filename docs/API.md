@@ -17,7 +17,7 @@ There are a number of methods that a DB storage backend should implement:
 * Accounts (using `email`)
     * .emailRecord(emailBuffer)
     * .accountExists(emailBuffer)
-    * .getEmail(emailBuffer)
+    * .getSecondaryEmail(emailBuffer)
 * Session Tokens
     * .createSessionToken(tokenId, sessionToken)
     * .updateSessionToken(tokenId, sessionToken)
@@ -319,7 +319,7 @@ Returns:
     * `error.notFound()` if no account exists for this email address
     * any error from the underlying storage engine
 
-## .getEmail(emailBuffer) ##
+## .getSecondaryEmail(emailBuffer) ##
 
 Get the email entry associated with this `emailBuffer`. This email is located on the secondary email table.
 
