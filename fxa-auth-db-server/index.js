@@ -90,6 +90,12 @@ function createServer(db) {
     })
   )
 
+  api.get('/account/emails/:email',
+    op(function (req) {
+      return db.getEmail(req.params.email)
+    })
+  )
+
   api.get('/sessionToken/:id', withIdAndBody(db.sessionToken))
   api.del('/sessionToken/:id', withIdAndBody(db.deleteSessionToken))
   api.put('/sessionToken/:id', withIdAndBody(db.createSessionToken))
