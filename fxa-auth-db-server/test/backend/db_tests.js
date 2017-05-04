@@ -58,6 +58,7 @@ var ACCOUNT = createAccount()
 function hex(len) {
   return Buffer(crypto.randomBytes(len).toString('hex'), 'hex')
 }
+function hex6() { return hex(6) }
 function hex16() { return hex(16) }
 function hex32() { return hex(32) }
 // function hex64() { return hex(64) }
@@ -2324,6 +2325,79 @@ module.exports = function(config, DB) {
               )
           }
         )
+
+        test('sign-in codes', t => {
+          t.plan(17)
+
+          const SIGNIN_CODES = [ hex6(), hex6(), hex6() ]
+          const NOW = Date.now()
+          const TIMESTAMPS = [ NOW - 3, NOW - 2, NOW - 1 ]
+
+          // Create an account
+          return db.createAccount(ACCOUNT.uid, ACCOUNT)
+            // Create 3 sign-in codes
+            .then(() => P.all([
+              db.createSigninCode(SIGNIN_CODES[0], ACCOUNT.uid, TIMESTAMPS[0]),
+              db.createSigninCode(SIGNIN_CODES[1], ACCOUNT.uid, TIMESTAMPS[1]),
+              db.createSigninCode(SIGNIN_CODES[2], ACCOUNT.uid, TIMESTAMPS[2])
+            ]))
+            .then(results => {
+              results.forEach(r => t.deepEqual(r, {}, 'createSigninCode should return an empty object'))
+
+              // Attempt to create a duplicate code
+              return db.createSigninCode(SIGNIN_CODES[1], ACCOUNT.uid, TIMESTAMPS[1])
+                .then(() => t.fail('db.createSigninCode should fail for duplicate codes'))
+                .catch(err => {
+                  t.ok(err, 'db.createSigninCode should reject with an error')
+                  t.equal(err.code, 409, 'db.useSigninCode should reject with code 404')
+                  t.equal(err.errno, 101, 'db.useSigninCode should reject with errno 116')
+                })
+            })
+            .then(() => {
+              // Expire 2 of the codes
+              return db.expireSigninCodes(TIMESTAMPS[2])
+            })
+            .then(result => {
+              t.deepEqual(result, {}, 'expireSigninCodes should return an empty object')
+
+              // Attempt to use the 1st expired code
+              return db.useSigninCode(SIGNIN_CODES[0])
+                .then(() => t.fail('db.useSigninCode should fail for expired codes'))
+                .catch(err => {
+                  t.ok(err, 'db.useSigninCode should reject with an error')
+                  t.equal(err.code, 404, 'db.useSigninCode should reject with code 404')
+                  t.equal(err.errno, 116, 'db.useSigninCode should reject with errno 116')
+                })
+            })
+            .then(() => {
+              // Attempt to use the 2nd expired code
+              return db.useSigninCode(SIGNIN_CODES[1])
+                .then(() => t.fail('db.useSigninCode should fail for expired codes'))
+                .catch(err => {
+                  t.ok(err, 'db.useSigninCode should reject with an error')
+                  t.equal(err.code, 404, 'db.useSigninCode should reject with code 404')
+                  t.equal(err.errno, 116, 'db.useSigninCode should reject with errno 116')
+                })
+            })
+            .then(() => {
+              // Use the non-expired code
+              return db.useSigninCode(SIGNIN_CODES[2])
+            })
+            .then(result => {
+              t.deepEqual(result, { email: ACCOUNT.email }, 'db.useSigninCode should return an email address for non-expired codes')
+
+              // Attempt to re-use a used code
+              return db.useSigninCode(SIGNIN_CODES[2])
+                .then(() => t.fail('db.useSigninCode should fail for used codes'))
+                .catch(err => {
+                  t.ok(err, 'db.useSigninCode should reject with an error')
+                  t.equal(err.code, 404, 'db.useSigninCode should reject with code 404')
+                  t.equal(err.errno, 116, 'db.useSigninCode should reject with errno 116')
+                })
+            })
+            // Clean up the account
+            .then(() => db.deleteAccount(ACCOUNT.uid))
+        })
 
         test(
           'teardown',

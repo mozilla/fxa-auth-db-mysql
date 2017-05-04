@@ -190,6 +190,21 @@ function createServer(db) {
     })
   )
 
+  api.put(
+    '/signinCodes/:code',
+    op(req => db.createSigninCode(req.params.code, req.body.uid, req.body.createdAt))
+  )
+
+  api.del(
+    '/signinCodes/:code',
+    op(req => db.useSigninCode(req.params.code))
+  )
+
+  api.del(
+    '/signinCodes/expire/:olderThan',
+    op(req => db.expireSigninCodes(req.params.olderThan))
+  )
+
   api.get(
     '/',
     function (req, res, next) {
