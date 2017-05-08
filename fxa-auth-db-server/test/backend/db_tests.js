@@ -2180,11 +2180,22 @@ module.exports = function(config, DB) {
                     .then(function () {
                       testAccount.email = testSecondaryEmail.email
                       testAccount.normalizedEmail = testSecondaryEmail.normalizedEmail
+
+                      // Create new account with secondary email that was deleted
                       return db.createAccount(testAccount.uid, testAccount)
                         .catch(t.fail)
                     })
                     .then(function (res) {
                       t.deepEqual(res, {}, 'successfully created an account')
+
+                      // Attempt to create secondary email address
+                      return db.createEmail(testAccount.uid, testSecondaryEmail)
+                        .then(() => {
+                          t.fail(new Error('Should not have created secondary email'))
+                        })
+                        .catch((err) => {
+                          t.equal(err.errno, 101, 'Correct errno')
+                        })
                     })
                 }
               )
