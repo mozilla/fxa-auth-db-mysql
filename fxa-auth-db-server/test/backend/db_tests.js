@@ -2057,6 +2057,7 @@ module.exports = function(config, DB) {
              * 6) Get `accountEmails` returns both emails, shows verified
              * 7) Delete secondary email
              * 8) Get `accountEmails` only return email on account table
+             * 9) Can create account from deleted account's secondary email
              *
              */
             // Lets begin our journey by creating a new account.
@@ -2156,6 +2157,35 @@ module.exports = function(config, DB) {
                   t.equal(!!result[0].isVerified, account.emailVerified, 'matches account emailVerified')
 
                   return P.resolve()
+                }
+              )
+              .then(
+                function() {
+                  // Can create an account from a deleted account's secondary email
+                  const testAccount = createAccount()
+                  testAccount.emailVerified = true
+
+                  const testSecondaryEmail = createEmail({
+                    uid: testAccount.uid,
+                    isVerified: true
+                  })
+
+                  return db.createAccount(testAccount.uid, testAccount)
+                    .then(function () {
+                      return db.createEmail(testAccount.uid, testSecondaryEmail)
+                    })
+                    .then(function () {
+                      return db.deleteAccount(testAccount.uid)
+                    })
+                    .then(function () {
+                      testAccount.email = testSecondaryEmail.email
+                      testAccount.normalizedEmail = testSecondaryEmail.normalizedEmail
+                      return db.createAccount(testAccount.uid, testAccount)
+                        .catch(t.fail)
+                    })
+                    .then(function (res) {
+                      t.deepEqual(res, {}, 'successfully created an account')
+                    })
                 }
               )
               .then(
