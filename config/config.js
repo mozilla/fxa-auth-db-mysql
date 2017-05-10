@@ -109,6 +109,11 @@ module.exports = function (fs, path, url, convict) {
         format: 'nat',
         env: 'MYSQL_QUEUE_LIMIT',
       },
+      insecureAuth: {
+        doc: 'Use old_passwords auth to connect to MySql',
+        default: false,
+        env: 'MYSQL_INSECURE_AUTH',
+      }
     },
     slave: {
       user: {
@@ -155,6 +160,11 @@ module.exports = function (fs, path, url, convict) {
         format: 'nat',
         env: 'MYSQL_SLAVE_QUEUE_LIMIT',
       },
+      insecureAuth: {
+        doc: 'Use old_passwords auth to connect to MySql',
+        default: false,
+        env: 'MYSQL_SLAVE_INSECURE_AUTH',
+      }
     },
     ipHmacKey: {
       doc: 'A secret to hash IP addresses for security history events',
