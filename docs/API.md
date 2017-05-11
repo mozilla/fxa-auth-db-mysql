@@ -50,6 +50,11 @@ There are a number of methods that a DB storage backend should implement:
     * .fetchReminders(body, query)
     * .deleteReminder(body)
 * Email Bounces
+    * .createEmailBounce(body)
+* Signin codes
+    * .createSigninCode(code, uid, createdAt)
+    * .useSigninCode(code)
+    * .expireSigninCodes(olderThan)
 * General
     * .ping()
     * .close()
@@ -64,6 +69,7 @@ is shown afterwards.
 * number - a number (integer only)
 * string - a string of undetermined length
 * Buffer - a Buffer of undetermined length
+* Buffer6 - a Buffer of length 6 bytes
 * Buffer16 - a Buffer of length 16 bytes
 * Buffer32 - a Buffer of length 32 bytes
 * Buffer64 - a Buffer of length 64 bytes
@@ -588,4 +594,37 @@ Parameters:
   * bounceType: The bounce type ([`'Permanent'`, `'Transient'`, `'Complaint'`])
   * bounceSubType: The bounce sub type string
 
-(Ends)
+## .createSigninCode(code, uid, createdAt)
+
+Create a user-specific, time-limited, single-use code
+that can be used for expedited sign-in.
+
+Parameters:
+
+* `code` (Buffer6):
+  The value of the code
+* `uid` (Buffer16):
+  The uid for the relevant user
+* `createdAt` (number):
+  Creation timestamp for the code, milliseconds since the epoch
+
+## .useSigninCode(code)
+
+Use (and delete) a sign-in code.
+
+Parameters:
+
+* `code` (Buffer6):
+  The value of the code
+
+## .expireSigninCodes(olderThan)
+
+Delete expired sign-in codes.
+
+Parameters:
+
+* `olderThan` (number):
+  Threshold timestamp for deletion,
+  if `createdAt` is less than this number
+  the sign-in code will be deleted.
+
