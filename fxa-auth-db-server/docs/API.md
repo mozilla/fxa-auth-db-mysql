@@ -1833,12 +1833,12 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 2
 
-{}
+{"email":"foo@example.com"}
 ```
 
 * Status Code : `200 OK`
     * Content-Type : `application/json`
-    * Body : `{}`
+    * Body : `{"email":"foo@example.com"}`
 * Status Code : 404 Not Found
     * Conditions: if the specified sign-in code doesn't exist
     * Content-Type : `application/json`
@@ -1870,7 +1870,7 @@ curl \
 ### Request
 
 * Method : `DELETE`
-* Path : `/signinCodes/<olderThan>
+* Path : `/signinCodes/expire/<olderThan>
     * `olderThan` : epoch
 
 ### Response
