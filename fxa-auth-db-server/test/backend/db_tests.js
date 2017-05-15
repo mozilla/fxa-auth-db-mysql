@@ -2327,25 +2327,26 @@ module.exports = function(config, DB) {
         )
 
         test('sign-in codes', t => {
-          t.plan(17)
+          t.plan(21)
 
-          const SIGNIN_CODES = [ hex6(), hex6(), hex6() ]
+          const SIGNIN_CODES = [ hex6(), hex6(), hex6(), hex6() ]
           const NOW = Date.now()
-          const TIMESTAMPS = [ NOW - 3, NOW - 2, NOW - 1 ]
+          const TIMESTAMPS = [ NOW - 4, NOW - 3, NOW - 2, NOW - 1 ]
 
           // Create an account
           return db.createAccount(ACCOUNT.uid, ACCOUNT)
-            // Create 3 sign-in codes
+            // Create 4 sign-in codes
             .then(() => P.all([
               db.createSigninCode(SIGNIN_CODES[0], ACCOUNT.uid, TIMESTAMPS[0]),
               db.createSigninCode(SIGNIN_CODES[1], ACCOUNT.uid, TIMESTAMPS[1]),
-              db.createSigninCode(SIGNIN_CODES[2], ACCOUNT.uid, TIMESTAMPS[2])
+              db.createSigninCode(SIGNIN_CODES[2], ACCOUNT.uid, TIMESTAMPS[2]),
+              db.createSigninCode(SIGNIN_CODES[3], ACCOUNT.uid, TIMESTAMPS[3])
             ]))
             .then(results => {
               results.forEach(r => t.deepEqual(r, {}, 'createSigninCode should return an empty object'))
 
               // Attempt to create a duplicate code
-              return db.createSigninCode(SIGNIN_CODES[1], ACCOUNT.uid, TIMESTAMPS[1])
+              return db.createSigninCode(SIGNIN_CODES[2], ACCOUNT.uid, TIMESTAMPS[2])
                 .then(() => t.fail('db.createSigninCode should fail for duplicate codes'))
                 .catch(err => {
                   t.ok(err, 'db.createSigninCode should reject with an error')
@@ -2380,7 +2381,7 @@ module.exports = function(config, DB) {
                 })
             })
             .then(() => {
-              // Use the non-expired code
+              // Use a non-expired code
               return db.consumeSigninCode(SIGNIN_CODES[2])
             })
             .then(result => {
@@ -2397,6 +2398,16 @@ module.exports = function(config, DB) {
             })
             // Clean up the account
             .then(() => db.deleteAccount(ACCOUNT.uid))
+            .then(() => {
+              // Attempt to use an unused code associated with a deleted account
+              return db.consumeSigninCode(SIGNIN_CODES[3])
+                .then(() => t.fail('db.consumeSigninCode should fail for deleted accounts'))
+                .catch(err => {
+                  t.ok(err, 'db.consumeSigninCode should reject with an error')
+                  t.equal(err.code, 404, 'db.consumeSigninCode should reject with code 404')
+                  t.equal(err.errno, 116, 'db.consumeSigninCode should reject with errno 116')
+                })
+            })
         })
 
         test(
