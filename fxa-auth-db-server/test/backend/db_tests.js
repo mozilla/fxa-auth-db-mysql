@@ -2349,8 +2349,8 @@ module.exports = function(config, DB) {
                 .then(() => t.fail('db.createSigninCode should fail for duplicate codes'))
                 .catch(err => {
                   t.ok(err, 'db.createSigninCode should reject with an error')
-                  t.equal(err.code, 409, 'db.useSigninCode should reject with code 404')
-                  t.equal(err.errno, 101, 'db.useSigninCode should reject with errno 116')
+                  t.equal(err.code, 409, 'db.createSigninCode should reject with code 404')
+                  t.equal(err.errno, 101, 'db.createSigninCode should reject with errno 116')
                 })
             })
             .then(() => {
@@ -2361,38 +2361,38 @@ module.exports = function(config, DB) {
               t.deepEqual(result, {}, 'expireSigninCodes should return an empty object')
 
               // Attempt to use the 1st expired code
-              return db.useSigninCode(SIGNIN_CODES[0])
-                .then(() => t.fail('db.useSigninCode should fail for expired codes'))
+              return db.consumeSigninCode(SIGNIN_CODES[0])
+                .then(() => t.fail('db.consumeSigninCode should fail for expired codes'))
                 .catch(err => {
-                  t.ok(err, 'db.useSigninCode should reject with an error')
-                  t.equal(err.code, 404, 'db.useSigninCode should reject with code 404')
-                  t.equal(err.errno, 116, 'db.useSigninCode should reject with errno 116')
+                  t.ok(err, 'db.consumeSigninCode should reject with an error')
+                  t.equal(err.code, 404, 'db.consumeSigninCode should reject with code 404')
+                  t.equal(err.errno, 116, 'db.consumeSigninCode should reject with errno 116')
                 })
             })
             .then(() => {
               // Attempt to use the 2nd expired code
-              return db.useSigninCode(SIGNIN_CODES[1])
-                .then(() => t.fail('db.useSigninCode should fail for expired codes'))
+              return db.consumeSigninCode(SIGNIN_CODES[1])
+                .then(() => t.fail('db.consumeSigninCode should fail for expired codes'))
                 .catch(err => {
-                  t.ok(err, 'db.useSigninCode should reject with an error')
-                  t.equal(err.code, 404, 'db.useSigninCode should reject with code 404')
-                  t.equal(err.errno, 116, 'db.useSigninCode should reject with errno 116')
+                  t.ok(err, 'db.consumeSigninCode should reject with an error')
+                  t.equal(err.code, 404, 'db.consumeSigninCode should reject with code 404')
+                  t.equal(err.errno, 116, 'db.consumeSigninCode should reject with errno 116')
                 })
             })
             .then(() => {
               // Use the non-expired code
-              return db.useSigninCode(SIGNIN_CODES[2])
+              return db.consumeSigninCode(SIGNIN_CODES[2])
             })
             .then(result => {
-              t.deepEqual(result, { email: ACCOUNT.email }, 'db.useSigninCode should return an email address for non-expired codes')
+              t.deepEqual(result, { email: ACCOUNT.email }, 'db.consumeSigninCode should return an email address for non-expired codes')
 
               // Attempt to re-use a used code
-              return db.useSigninCode(SIGNIN_CODES[2])
-                .then(() => t.fail('db.useSigninCode should fail for used codes'))
+              return db.consumeSigninCode(SIGNIN_CODES[2])
+                .then(() => t.fail('db.consumeSigninCode should fail for used codes'))
                 .catch(err => {
-                  t.ok(err, 'db.useSigninCode should reject with an error')
-                  t.equal(err.code, 404, 'db.useSigninCode should reject with code 404')
-                  t.equal(err.errno, 116, 'db.useSigninCode should reject with errno 116')
+                  t.ok(err, 'db.consumeSigninCode should reject with an error')
+                  t.equal(err.code, 404, 'db.consumeSigninCode should reject with code 404')
+                  t.equal(err.errno, 116, 'db.consumeSigninCode should reject with errno 116')
                 })
             })
             // Clean up the account

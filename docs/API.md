@@ -53,7 +53,7 @@ There are a number of methods that a DB storage backend should implement:
     * .createEmailBounce(body)
 * Signin codes
     * .createSigninCode(code, uid, createdAt)
-    * .useSigninCode(code)
+    * .consumeSigninCode(code)
     * .expireSigninCodes(olderThan)
 * General
     * .ping()
@@ -608,7 +608,7 @@ Parameters:
 * `createdAt` (number):
   Creation timestamp for the code, milliseconds since the epoch
 
-## .useSigninCode(code)
+## .consumeSigninCode(code)
 
 Use (and delete) a sign-in code.
 

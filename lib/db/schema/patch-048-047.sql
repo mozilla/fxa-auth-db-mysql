@@ -1,5 +1,5 @@
 -- DROP PROCEDURE `deleteAccount_13`;
--- DROP PROCEDURE `useSigninCode_1`;
+-- DROP PROCEDURE `consumeSigninCode_1`;
 -- DROP PROCEDURE `createSigninCode_1`;
 
 -- DROP TABLE signinCodes;

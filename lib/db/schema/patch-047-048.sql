@@ -15,7 +15,7 @@ BEGIN
   VALUES(hashArg, uidArg, createdAtArg);
 END;
 
-CREATE PROCEDURE `useSigninCode_1` (
+CREATE PROCEDURE `consumeSigninCode_1` (
   IN `hashArg` BINARY(32)
 )
 BEGIN

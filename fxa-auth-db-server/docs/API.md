@@ -93,7 +93,7 @@ The following datatypes are used throughout this document:
     * verifyTokens              : `POST /tokens/:tokenVerificationId/verify`
 * Sign-in codes
     * createSigninCode          : `PUT /signinCodes/:code`
-    * useSigninCode             : `DELETE /signinCodes/:code`
+    * consumeSigninCode         : `DELETE /signinCodes/:code`
     * expireSigninCodes         : `DELETE /signinCodes/expire/:olderThan`
 
 ## Ping : `GET /`
@@ -1813,7 +1813,7 @@ Content-Length: 2
     * Content-Type : `application/json`
     * Body : `{"code":"InternalError","message":"..."}`
 
-## useSigninCode : `DELETE /signinCodes/:code`
+## consumeSigninCode : `DELETE /signinCodes/:code`
 
 Use a sign-in code.
 
