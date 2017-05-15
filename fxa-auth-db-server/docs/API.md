@@ -35,7 +35,7 @@ All responses conform to the following:
 The following datatypes are used throughout this document:
 
 * epoch     : the date in ms since epoch. eg. 1424819640738 such as that returned from `Date.now()`
-* hex48     : a 64 bit value in hex encoding. ie. 12 chars long (6 bytes)
+* hex48     : a 48 bit value in hex encoding. ie. 12 chars long (6 bytes)
 * hex128    : a 128 bit value in hex encoding. ie. 32 chars long (16 bytes)
 * hex256    : a 256 bit value in hex encoding. ie. 64 chars long (32 bytes)
 * hex768    : a 768 bit value in hex encoding. ie. 192 chars long (96 bytes)
