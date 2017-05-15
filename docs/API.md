@@ -69,7 +69,6 @@ is shown afterwards.
 * number - a number (integer only)
 * string - a string of undetermined length
 * Buffer - a Buffer of undetermined length
-* Buffer6 - a Buffer of length 6 bytes
 * Buffer16 - a Buffer of length 16 bytes
 * Buffer32 - a Buffer of length 32 bytes
 * Buffer64 - a Buffer of length 64 bytes
@@ -601,7 +600,7 @@ that can be used for expedited sign-in.
 
 Parameters:
 
-* `code` (Buffer6):
+* `code` (Buffer):
   The value of the code
 * `uid` (Buffer16):
   The uid for the relevant user
@@ -614,7 +613,7 @@ Use (and delete) a sign-in code.
 
 Parameters:
 
-* `code` (Buffer6):
+* `code` (Buffer):
   The value of the code
 
 ## .expireSigninCodes(olderThan)
