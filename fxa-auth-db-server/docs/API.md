@@ -1789,7 +1789,7 @@ curl \
     * `code` : hex
 * Params:
     * `uid` : hex128
-	* `createdAt` : epoch
+    * `createdAt` : epoch
 
 ### Response
 
