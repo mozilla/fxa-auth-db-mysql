@@ -93,7 +93,7 @@ The following datatypes are used throughout this document:
     * verifyTokens              : `POST /tokens/:tokenVerificationId/verify`
 * Sign-in codes
     * createSigninCode          : `PUT /signinCodes/:code`
-    * consumeSigninCode         : `DELETE /signinCodes/:code`
+    * consumeSigninCode         : `POST /signinCodes/:code/consume`
     * expireSigninCodes         : `DELETE /signinCodes/expire/:olderThan`
 
 ## Ping : `GET /`
@@ -1813,17 +1813,17 @@ Content-Length: 2
     * Content-Type : `application/json`
     * Body : `{"code":"InternalError","message":"..."}`
 
-## consumeSigninCode : `DELETE /signinCodes/:code`
+## consumeSigninCode : `POST /signinCodes/:code/consume`
 
-Use a sign-in code.
+Use (and delete) a sign-in code.
 
 ### Example
 
 ```
 curl \
     -v \
-    -X DELETE \
-    http://localhost:8000/signinCodes/1234567890ab
+    -X POST \
+    http://localhost:8000/signinCodes/1234567890ab/consume
 ```
 
 ### Response

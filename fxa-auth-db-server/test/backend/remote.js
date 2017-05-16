@@ -1301,27 +1301,27 @@ module.exports = function(cfg, server) {
           .catch(err => testConflict(t, err))
       })
       .then(() => {
-        // Expire the first sign-in code
+        // Expire the 1st sign-in code
         return client.delThen(`/signinCodes/expire/${timestamps[1]}`)
       })
       .then(r => {
         respOkEmpty(t, r)
 
         // Attempt to delete the 1st sign-in code
-        return client.delThen(`/signinCodes/${signinCodes[0]}`)
+        return client.postThen(`/signinCodes/${signinCodes[0]}/consume`)
           .then(() => t.fail('deleting an expired sign-in code should fail'))
           .catch(err => testNotFound(t, err))
       })
       .then(() => {
         // Delete the 2nd sign-in code
-        return client.delThen(`/signinCodes/${signinCodes[1]}`)
+        return client.postThen(`/signinCodes/${signinCodes[1]}/consume`)
       })
       .then(r => {
         respOk(t, r)
         t.deepEqual(r.obj, { email: user.account.email }, 'deleting a sign-in code should return the email address')
 
         // Attempt to delete the 2nd sign-in code again
-        return client.delThen(`/signinCodes/${signinCodes[0]}`)
+        return client.postThen(`/signinCodes/${signinCodes[0]}/consume`)
           .then(() => t.fail('deleting a deleted sign-in code should fail'))
           .catch(err => testNotFound(t, err))
       })

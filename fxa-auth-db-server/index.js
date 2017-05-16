@@ -195,8 +195,8 @@ function createServer(db) {
     op(req => db.createSigninCode(req.params.code, req.body.uid, req.body.createdAt))
   )
 
-  api.del(
-    '/signinCodes/:code',
+  api.post(
+    '/signinCodes/:code/consume',
     op(req => db.consumeSigninCode(req.params.code))
   )
 
