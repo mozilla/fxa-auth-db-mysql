@@ -94,9 +94,14 @@ function createServer(db) {
       return db.getSecondaryEmail(Buffer(req.params.email, 'hex'))
     })
   )
-  api.get('/account/email/:email',
+  api.get('/email/:email/account',
     op(function (req) {
       return db.accountRecord(Buffer(req.params.email, 'hex'))
+    })
+  )
+  api.get('/email/:email/account/:id',
+    op(function (req) {
+      return db.setPrimaryEmail(req.params.id, Buffer(req.params.email, 'hex'))
     })
   )
 
