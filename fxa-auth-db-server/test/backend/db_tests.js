@@ -42,7 +42,7 @@ function createEmail(data) {
     email: ('' + Math.random()).substr(2) + '@bar.com',
     uid: data.uid,
     emailCode: data.emailCode || crypto.randomBytes(16),
-    isVerified: false,
+    isVerified: data.isVerified || false,
     isPrimary: false,
     createdAt: Date.now()
   }
@@ -2410,9 +2410,60 @@ module.exports = function(config, DB) {
             })
         })
 
+        test('change email', t => {
+          t.plan(20)
+          const account = createAccount()
+          account.emailVerified = true
+
+          var secondEmail = createEmail({
+            uid: account.uid,
+            isVerified: true
+          })
+
+          db.createAccount(account.uid, account)
+            .then(function () {
+              return db.createEmail(account.uid, secondEmail)
+            })
+            .then(function (result) {
+              t.deepEqual(result, {}, 'Returned an empty object on email creation')
+              return db.accountEmails(account.uid)
+            })
+            .then(function (res) {
+              t.deepEqual(res.length, 2, 'Returns correct amount of emails')
+              t.equal(res[0].email, account.email, 'primary email is the address that was used to create account')
+              t.deepEqual(res[0].emailCode, account.emailCode, 'correct emailCode')
+              t.equal(!!res[0].isVerified, account.emailVerified, 'correct verification set')
+              t.equal(!!res[0].isPrimary, true, 'isPrimary is true')
+
+              t.equal(res[1].email, secondEmail.email, 'primary email is the address that was used to create account')
+              t.deepEqual(res[1].emailCode, secondEmail.emailCode, 'correct emailCode')
+              t.equal(!!res[1].isVerified, secondEmail.isVerified, 'correct verification set')
+              t.equal(!!res[1].isPrimary, false, 'isPrimary is false')
+
+              return db.setPrimaryEmail(account.uid, secondEmail.email)
+            })
+            .then(function (res) {
+              t.deepEqual(res, {}, 'Returned an empty object on email change')
+              return db.accountEmails(account.uid)
+            })
+            .then(function (res) {
+              t.deepEqual(res.length, 2, 'Returns correct amount of emails')
+
+              t.equal(res[0].email, secondEmail.email, 'primary email is the secondary email address')
+              t.deepEqual(res[0].emailCode, secondEmail.emailCode, 'correct emailCode')
+              t.equal(!!res[0].isVerified, secondEmail.isVerified, 'correct verification set')
+              t.equal(!!res[0].isPrimary, true, 'isPrimary is true')
+
+              t.equal(res[1].email, account.email, 'should equal account email')
+              t.deepEqual(res[1].emailCode, account.emailCode, 'correct emailCode')
+              t.equal(!!res[1].isVerified, account.emailVerified, 'correct verification set')
+              t.equal(!!res[1].isPrimary, false, 'isPrimary is false')
+            })
+        })
+
         test(
           'teardown',
-          function (t) {
+          function () {
             return db.close()
           }
         )

@@ -13,32 +13,38 @@ BEGIN
 
   -- Check to see where the primary email for the account is located
   SET @primaryOnEmails = 0;
-  SELECT COUNT(*) INTO @emailExists FROM emails WHERE uid = inUid AND isPrimary = true;
+  SELECT COUNT(*) INTO @primaryOnEmails FROM emails WHERE uid = inUid AND isPrimary = true;
 
   IF @primaryOnEmails > 0 THEN
      UPDATE emails SET isPrimary = false WHERE uid = inUid AND isPrimary = true;
      UPDATE emails SET isPrimary = true WHERE uid = inUid AND normalizedEmail = inNormalizedEmail;
   ELSE
-     INSERT INTO emails(
-        normalizedEmail,
-        email,
-        uid,
-        emailCode,
-        isVerified,
-        isPrimary,
-        verifiedAt,
-        createdAt
-     )
-     SELECT
-        normalizedEmail,
-        email,
-        uid,
-        emailCode,
-        emailVerified,
-        false,
-        now,
-        now
-     FROM accounts WHERE uid = inUid;
+     -- Insert email in account table if has not already been inserted
+     SET @emailExists = 0
+     SELECT COUNT(*) INTO @emailExists FROM emails WHERE normalizedEmail = inNormalizedEmail;
+
+     IF @emailExists = 0  THEN
+       INSERT INTO emails(
+            normalizedEmail,
+            email,
+            uid,
+            emailCode,
+            isVerified,
+            isPrimary,
+            verifiedAt,
+            createdAt
+         )
+       SELECT
+            normalizedEmail,
+            email,
+            uid,
+            emailCode,
+            emailVerified,
+            false,
+            UNIX_TIMESTAMP(),
+            UNIX_TIMESTAMP()
+       FROM accounts WHERE uid = inUid;
+     END IF;
 
      UPDATE emails SET isPrimary = true WHERE uid = inUid AND normalizedEmail = inNormalizedEmail;
   END IF;
@@ -85,7 +91,7 @@ BEGIN
             uid = inUid;
     END IF;
 
-    SELECT * FROM tempUserEmails ORDER BY createdAt;
+    SELECT * FROM tempUserEmails ORDER BY isPrimary=true DESC;
 END;
 
 CREATE PROCEDURE `createAccount_7`(
