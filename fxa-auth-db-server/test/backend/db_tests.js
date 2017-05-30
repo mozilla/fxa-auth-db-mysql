@@ -42,7 +42,7 @@ function createEmail(data) {
     email: ('' + Math.random()).substr(2) + '@bar.com',
     uid: data.uid,
     emailCode: data.emailCode || crypto.randomBytes(16),
-    isVerified: false,
+    isVerified: data.isVerified || false,
     isPrimary: false,
     createdAt: Date.now()
   }
@@ -116,6 +116,23 @@ var ACCOUNT_RESET_TOKEN = {
   data : hex32(),
   uid : ACCOUNT.uid,
   createdAt: now + 5
+}
+
+function makeMockSessionToken(uid) {
+  var sessionToken = {
+    data : hex32(),
+    uid : uid,
+    createdAt : now + 1,
+    uaBrowser : 'mock browser',
+    uaBrowserVersion : 'mock browser version',
+    uaOS : 'mock OS',
+    uaOSVersion : 'mock OS version',
+    uaDeviceType : 'mock device type',
+    mustVerify: true,
+    tokenVerificationId : hex16()
+  }
+
+  return sessionToken
 }
 
 // To run these tests from a new backend, pass the config and an already created
@@ -2410,9 +2427,81 @@ module.exports = function(config, DB) {
             })
         })
 
+        test('change email', t => {
+          t.plan(30)
+          const account = createAccount()
+          account.emailVerified = true
+
+          var secondEmail = createEmail({
+            uid: account.uid,
+            isVerified: true
+          })
+
+          db.createAccount(account.uid, account)
+            .then(function () {
+              return db.createEmail(account.uid, secondEmail)
+            })
+            .then(function (result) {
+              t.deepEqual(result, {}, 'Returned an empty object on email creation')
+              return db.accountEmails(account.uid)
+            })
+            .then(function (res) {
+              t.deepEqual(res.length, 2, 'Returns correct amount of emails')
+              t.equal(res[0].email, account.email, 'primary email is the address that was used to create account')
+              t.deepEqual(res[0].emailCode, account.emailCode, 'correct emailCode')
+              t.equal(!!res[0].isVerified, account.emailVerified, 'correct verification set')
+              t.equal(!!res[0].isPrimary, true, 'isPrimary is true')
+
+              t.equal(res[1].email, secondEmail.email, 'primary email is the address that was used to create account')
+              t.deepEqual(res[1].emailCode, secondEmail.emailCode, 'correct emailCode')
+              t.equal(!!res[1].isVerified, secondEmail.isVerified, 'correct verification set')
+              t.equal(!!res[1].isPrimary, false, 'isPrimary is false')
+
+              return db.setPrimaryEmail(account.uid, secondEmail.email)
+            })
+            .then(function (res) {
+              t.deepEqual(res, {}, 'Returned an empty object on email change')
+              return db.accountEmails(account.uid)
+            })
+            .then(function (res) {
+              t.deepEqual(res.length, 2, 'Returns correct amount of emails')
+
+              t.equal(res[0].email, secondEmail.email, 'primary email is the secondary email address')
+              t.deepEqual(res[0].emailCode, secondEmail.emailCode, 'correct emailCode')
+              t.equal(!!res[0].isVerified, secondEmail.isVerified, 'correct verification set')
+              t.equal(!!res[0].isPrimary, true, 'isPrimary is true')
+
+              t.equal(res[1].email, account.email, 'should equal account email')
+              t.deepEqual(res[1].emailCode, account.emailCode, 'correct emailCode')
+              t.equal(!!res[1].isVerified, account.emailVerified, 'correct verification set')
+              t.equal(!!res[1].isPrimary, false, 'isPrimary is false')
+
+              // Verify correct email set in session
+              const sessionToken = makeMockSessionToken(account.uid)
+              return db.createSessionToken(SESSION_TOKEN_ID, sessionToken)
+                .then(() => {
+                  return P.all([db.sessionToken(SESSION_TOKEN_ID), db.sessionTokenWithVerificationStatus(SESSION_TOKEN_ID)])
+                })
+            })
+          .then((res) => {
+            res.forEach((session) => {
+              t.equal(session.email, secondEmail.email, 'should equal new primary email')
+              t.deepEqual(session.emailCode, secondEmail.emailCode, 'should equal new primary emailCode')
+              t.deepEqual(session.uid, account.uid, 'should equal account uid')
+            })
+            return P.all([db.accountRecord(secondEmail.email), db.accountRecord(account.email)])
+          })
+          .then((res) => {
+            t.deepEqual(res[0].emails, res[1].emails, 'should match same emails')
+            t.deepEqual(res[0].email, res[1].email, 'should match primary email on account')
+            t.deepEqual(res[0].emailCode, res[1].emailCode, 'should match emailCode on account')
+            t.deepEqual(res[0].emailVerified, res[1].emailVerified, 'should match emailVerified on account')
+          })
+        })
+
         test(
           'teardown',
-          function (t) {
+          function () {
             return db.close()
           }
         )
