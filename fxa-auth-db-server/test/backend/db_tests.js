@@ -118,6 +118,23 @@ var ACCOUNT_RESET_TOKEN = {
   createdAt: now + 5
 }
 
+function makeMockSessionToken(uid) {
+  var sessionToken = {
+    data : hex32(),
+    uid : uid,
+    createdAt : now + 1,
+    uaBrowser : 'mock browser',
+    uaBrowserVersion : 'mock browser version',
+    uaOS : 'mock OS',
+    uaOSVersion : 'mock OS version',
+    uaDeviceType : 'mock device type',
+    mustVerify: true,
+    tokenVerificationId : hex16()
+  }
+
+  return sessionToken
+}
+
 // To run these tests from a new backend, pass the config and an already created
 // DB API for them to be run against.
 module.exports = function(config, DB) {
@@ -2411,7 +2428,7 @@ module.exports = function(config, DB) {
         })
 
         test('change email', t => {
-          t.plan(20)
+          t.plan(30)
           const account = createAccount()
           account.emailVerified = true
 
@@ -2458,7 +2475,28 @@ module.exports = function(config, DB) {
               t.deepEqual(res[1].emailCode, account.emailCode, 'correct emailCode')
               t.equal(!!res[1].isVerified, account.emailVerified, 'correct verification set')
               t.equal(!!res[1].isPrimary, false, 'isPrimary is false')
+
+              // Verify correct email set in session
+              const sessionToken = makeMockSessionToken(account.uid)
+              return db.createSessionToken(SESSION_TOKEN_ID, sessionToken)
+                .then(() => {
+                  return P.all([db.sessionToken(SESSION_TOKEN_ID), db.sessionTokenWithVerificationStatus(SESSION_TOKEN_ID)])
+                })
             })
+          .then((res) => {
+            res.forEach((session) => {
+              t.equal(session.email, secondEmail.email, 'should equal new primary email')
+              t.deepEqual(session.emailCode, secondEmail.emailCode, 'should equal new primary emailCode')
+              t.deepEqual(session.uid, account.uid, 'should equal account uid')
+            })
+            return P.all([db.accountRecord(secondEmail.email), db.accountRecord(account.email)])
+          })
+          .then((res) => {
+            t.deepEqual(res[0].emails, res[1].emails, 'should match same emails')
+            t.deepEqual(res[0].email, res[1].email, 'should match primary email on account')
+            t.deepEqual(res[0].emailCode, res[1].emailCode, 'should match emailCode on account')
+            t.deepEqual(res[0].emailVerified, res[1].emailVerified, 'should match emailVerified on account')
+          })
         })
 
         test(

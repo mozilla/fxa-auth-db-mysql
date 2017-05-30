@@ -19,9 +19,9 @@ BEGIN
      UPDATE emails SET isPrimary = false WHERE uid = inUid AND isPrimary = true;
      UPDATE emails SET isPrimary = true WHERE uid = inUid AND normalizedEmail = inNormalizedEmail;
   ELSE
-     -- Insert email in account table if has not already been inserted
+     -- Insert email in account table if it has not already been inserted
      SET @emailExists = 0
-     SELECT COUNT(*) INTO @emailExists FROM emails WHERE normalizedEmail = inNormalizedEmail;
+     SELECT COUNT(*) INTO @emailExists FROM emails WHERE uid = inUid AND normalizedEmail = inNormalizedEmail;
 
      IF @emailExists = 0  THEN
        INSERT INTO emails(
@@ -172,7 +172,7 @@ BEGIN
         inUid,
         inEmailCode,
         inEmailVerified,
-        TRUE,
+        true,
         inCreatedAt
     );
 
