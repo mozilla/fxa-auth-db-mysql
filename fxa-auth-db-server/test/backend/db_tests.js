@@ -2410,6 +2410,34 @@ module.exports = function(config, DB) {
             })
         })
 
+        test('email on account/email table in sync', t => {
+          t.plan(8)
+          const account = createAccount()
+
+          return db.createAccount(account.uid, account)
+            .then(function (result) {
+              t.deepEqual(result, {}, 'returned empty response on account creation')
+              return P.all([db.accountEmails(account.uid), db.account(account.uid)])
+            })
+            .spread(function (emails, account) {
+              t.equal(emails[0].email, account.email, 'correct email returned')
+              t.equal(!!emails[0].isVerified, !!account.emailVerified, 'correct email verification')
+              t.equal(!!emails[0].isPrimary, true, 'correct email primary')
+
+              // Verify account email
+              return db.verifyEmail(account.uid, account.emailCode)
+            })
+            .then(function (result) {
+              t.deepEqual(result, {}, 'returned empty response on verify email')
+              return P.all([db.accountEmails(account.uid), db.account(account.uid)])
+            })
+            .spread(function (emails, account) {
+              t.equal(emails[0].email, account.email, 'correct email returned')
+              t.equal(!!emails[0].isVerified, !!account.emailVerified, 'correct email verification')
+              t.equal(!!emails[0].isPrimary, true, 'correct email primary')
+            })
+        })
+
         test(
           'teardown',
           function (t) {
