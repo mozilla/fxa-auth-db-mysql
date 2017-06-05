@@ -162,7 +162,7 @@ BEGIN
     DELETE FROM passwordForgotTokens WHERE tokenId = inPasswordForgotTokenId;
 
     UPDATE accounts SET emailVerified = true WHERE uid = inUid;
-    UPDATE emails SET isVerified = true WHERE uid = inUid AND isPrimary = true;
+    UPDATE emails SET isVerified = true WHERE email = (SELECT email FROM accounts WHERE uid = inUid);
 
     COMMIT;
 END;
