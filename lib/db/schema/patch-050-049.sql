@@ -1,0 +1,1 @@
+-- UPDATE dbMetadata SET value = '49' WHERE name = 'schema-patch-level';
