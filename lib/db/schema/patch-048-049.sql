@@ -103,6 +103,8 @@ BEGIN
     WHERE
         uid = inUid);
 
+    -- This check can be removed once the `emails` table is the source of truth for all
+    -- things emails related.
     SET @hasPrimary = 0;
     SELECT COUNT(*) INTO @hasPrimary FROM tempUserEmails WHERE uid = inUid AND isPrimary = true;
     IF @hasPrimary = 0 THEN
@@ -183,5 +185,23 @@ BEGIN
 
     COMMIT;
 END;
+
+-- Migration to copy account emails that are not on the emails table
+-- Sets the email as the primary email for account
+INSERT INTO emails
+SELECT
+    normalizedEmail,
+    email,
+    uid,
+    emailCode,
+    emailVerified AS isVerified,
+    TRUE AS isPrimary,
+    createdAt AS verifiedAt,
+    createdAt
+FROM accounts a
+WHERE
+    a.uid
+NOT IN
+    (SELECT DISTINCT uid FROM emails) LIMIT 1000
 
 UPDATE dbMetadata SET value = '49' WHERE name = 'schema-patch-level';

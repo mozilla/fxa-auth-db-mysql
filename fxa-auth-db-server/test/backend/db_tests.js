@@ -2319,6 +2319,33 @@ module.exports = function(config, DB) {
         })
     })
 
+    it('email on account/email table in sync', () => {
+      const account = createAccount()
+
+      return db.createAccount(account.uid, account)
+        .then(function (result) {
+          assert.deepEqual(result, {}, 'returned empty response on account creation')
+          return P.all([db.accountEmails(account.uid), db.account(account.uid)])
+        })
+        .spread(function (emails, account) {
+          assert.equal(emails[0].email, account.email, 'correct email returned')
+          assert.equal(!!emails[0].isVerified, !!account.emailVerified, 'correct email verification')
+          assert.equal(!!emails[0].isPrimary, true, 'correct email primary')
+
+          // Verify account email
+          return db.verifyEmail(account.uid, account.emailCode)
+        })
+        .then(function (result) {
+          assert.deepEqual(result, {}, 'returned empty response on verify email')
+          return P.all([db.accountEmails(account.uid), db.account(account.uid)])
+        })
+        .spread(function (emails, account) {
+          assert.equal(emails[0].email, account.email, 'correct email returned')
+          assert.equal(!!emails[0].isVerified, !!account.emailVerified, 'correct email verification')
+          assert.equal(!!emails[0].isPrimary, true, 'correct email primary')
+        })
+    })
+
     after(() => db.close())
   })
 }
