@@ -71,7 +71,7 @@ BEGIN
         createdAt
     )
     VALUES(
-        LOWER(normalizedEmail),
+        LOWER(inNormalizedEmail),
         inEmail,
         inUid,
         inEmailCode,
