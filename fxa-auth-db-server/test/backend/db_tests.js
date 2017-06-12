@@ -1397,7 +1397,8 @@ module.exports = function(config, DB) {
     it(
       'db.resetAccount',
       () => {
-        var uid = ACCOUNT.uid
+        var account = createAccount()
+        var uid = account.uid
         var createdAt = Date.now()
         var THROWAWAY_PASSWORD_FORGOT_TOKEN_ID = hex32()
         var THROWAWAY_PASSWORD_FORGOT_TOKEN = {
@@ -1414,10 +1415,25 @@ module.exports = function(config, DB) {
           uid : uid,
           createdAt: now + 4
         }
+        var sessionToken = {
+          data : hex32(),
+          uid : account.uid,
+          createdAt : now + 1,
+          uaBrowser : 'mock browser',
+          uaBrowserVersion : 'mock browser version',
+          uaOS : 'mock OS',
+          uaOSVersion : 'mock OS version',
+          uaDeviceType : 'mock device type',
+          mustVerify: true,
+          tokenVerificationId : hex16()
+        }
 
-        return db.createSessionToken(SESSION_TOKEN_ID, SESSION_TOKEN)
-          .then(function(sessionToken) {
-            return db.createDevice(ACCOUNT.uid, newUuid(), {
+        return db.createAccount(account.uid, account)
+          .then(function () {
+            return db.createSessionToken(SESSION_TOKEN_ID, sessionToken)
+          })
+          .then(function() {
+            return db.createDevice(account.uid, newUuid(), {
               sessionTokenId: SESSION_TOKEN_ID,
               createdAt: createdAt
             })
@@ -1426,19 +1442,38 @@ module.exports = function(config, DB) {
             return db.createPasswordForgotToken(THROWAWAY_PASSWORD_FORGOT_TOKEN_ID, THROWAWAY_PASSWORD_FORGOT_TOKEN)
           })
           .then(function(passwordForgotToken) {
+            return P.all([db.account(uid), db.accountEmails(uid)])
+          })
+          .spread(function(accountResult, emails) {
+            // Account should be unverified
+            assert.equal(!!accountResult.emailVerified, false, 'email is not verified')
+            assert.equal(!!emails[0].isVerified, false, 'email is not verified')
+            assert.equal(!!emails[0].isPrimary, true, 'email is primary')
+            assert.equal(accountResult.email, emails[0].email, 'emails should match')
+
             return db.forgotPasswordVerified(THROWAWAY_PASSWORD_FORGOT_TOKEN_ID, THROWAWAY_ACCOUNT_RESET_TOKEN)
+          })
+          .then(function() {
+            return P.all([db.account(uid), db.accountEmails(uid)])
+          })
+          .spread(function(accountResult, emails) {
+            // Account should be verified
+            assert.equal(!!accountResult.emailVerified, true, 'email is verified')
+            assert.equal(!!emails[0].isVerified, true, 'email is verified')
+            assert.equal(!!emails[0].isPrimary, true, 'email is primary')
+            assert.equal(accountResult.email, emails[0].email, 'emails should match')
           })
           .then(function() {
             return db.resetAccount(uid, ACCOUNT)
           })
-          .then(function(sessionToken) {
+          .then(function() {
             return db.accountDevices(uid)
           })
           .then(function(devices) {
             assert.equal(devices.length, 0, 'The devices length should be zero')
 
             // Attempt to verify the session token
-            return db.verifyTokens(SESSION_TOKEN.tokenVerificationId, { uid: uid })
+            return db.verifyTokens(sessionToken.tokenVerificationId, { uid: uid })
           })
           .then(function () {
             assert(false, 'Verifying deleted token should have failed')
@@ -1458,7 +1493,7 @@ module.exports = function(config, DB) {
           })
           .then(function() {
             // account should STILL exist for this email address
-            var emailBuffer = Buffer(ACCOUNT.email)
+            var emailBuffer = Buffer(account.email)
             return db.accountExists(emailBuffer)
           })
           .then(function(exists) {
@@ -2228,24 +2263,23 @@ module.exports = function(config, DB) {
     )
 
     it('sign-in codes', () => {
-      const SIGNIN_CODES = [ hex6(), hex6(), hex6(), hex6() ]
+      const SIGNIN_CODES = [ hex6(), hex6(), hex6() ]
       const NOW = Date.now()
-      const TIMESTAMPS = [ NOW - 4, NOW - 3, NOW - 2, NOW - 1 ]
+      const TIMESTAMPS = [ NOW - 1, NOW - 2, NOW - config.signinCodesMaxAge - 1 ]
 
       // Create an account
       return db.createAccount(ACCOUNT.uid, ACCOUNT)
-        // Create 4 sign-in codes
+        // Create 3 sign-in codes, two fresh and the other expired
         .then(() => P.all([
           db.createSigninCode(SIGNIN_CODES[0], ACCOUNT.uid, TIMESTAMPS[0]),
           db.createSigninCode(SIGNIN_CODES[1], ACCOUNT.uid, TIMESTAMPS[1]),
-          db.createSigninCode(SIGNIN_CODES[2], ACCOUNT.uid, TIMESTAMPS[2]),
-          db.createSigninCode(SIGNIN_CODES[3], ACCOUNT.uid, TIMESTAMPS[3])
+          db.createSigninCode(SIGNIN_CODES[2], ACCOUNT.uid, TIMESTAMPS[2])
         ]))
         .then(results => {
           results.forEach(r => assert.deepEqual(r, {}, 'createSigninCode should return an empty object'))
 
           // Attempt to create a duplicate code
-          return db.createSigninCode(SIGNIN_CODES[2], ACCOUNT.uid, TIMESTAMPS[2])
+          return db.createSigninCode(SIGNIN_CODES[0], ACCOUNT.uid, TIMESTAMPS[0])
             .then(
               () => assert(false, 'db.createSigninCode should fail for duplicate codes'),
               err => {
@@ -2256,46 +2290,28 @@ module.exports = function(config, DB) {
             )
         })
         .then(() => {
-          // Expire 2 of the codes
-          return db.expireSigninCodes(TIMESTAMPS[2])
-        })
-        .then(result => {
-          assert.deepEqual(result, {}, 'expireSigninCodes should return an empty object')
-
-          // Attempt to use the 1st expired code
+          // Consume a fresh code
           return db.consumeSigninCode(SIGNIN_CODES[0])
-            .then(
-              () => assert(false, 'db.consumeSigninCode should fail for expired codes'),
-              err => {
-                assert(err, 'db.consumeSigninCode should reject with an error')
-                assert.equal(err.code, 404, 'db.consumeSigninCode should reject with code 404')
-                assert.equal(err.errno, 116, 'db.consumeSigninCode should reject with errno 116')
-              }
-            )
-        })
-        .then(() => {
-          // Attempt to use the 2nd expired code
-          return db.consumeSigninCode(SIGNIN_CODES[1])
-            .then(
-              () => assert(false, 'db.consumeSigninCode should fail for expired codes'),
-              err => {
-                assert(err, 'db.consumeSigninCode should reject with an error')
-                assert.equal(err.code, 404, 'db.consumeSigninCode should reject with code 404')
-                assert.equal(err.errno, 116, 'db.consumeSigninCode should reject with errno 116')
-              }
-            )
-        })
-        .then(() => {
-          // Use a non-expired code
-          return db.consumeSigninCode(SIGNIN_CODES[2])
         })
         .then(result => {
           assert.deepEqual(result, { email: ACCOUNT.email }, 'db.consumeSigninCode should return an email address for non-expired codes')
 
-          // Attempt to re-use a used code
+          // Attempt to re-consume the consumed code
+          return db.consumeSigninCode(SIGNIN_CODES[0])
+            .then(
+              () => assert(false, 'db.consumeSigninCode should fail for consumed codes'),
+              err => {
+                assert(err, 'db.consumeSigninCode should reject with an error')
+                assert.equal(err.code, 404, 'db.consumeSigninCode should reject with code 404')
+                assert.equal(err.errno, 116, 'db.consumeSigninCode should reject with errno 116')
+              }
+            )
+        })
+        .then(() => {
+          // Attempt to consume the expired code
           return db.consumeSigninCode(SIGNIN_CODES[2])
             .then(
-              () => assert(false, 'db.consumeSigninCode should fail for used codes'),
+              () => assert(false, 'db.consumeSigninCode should fail for expired codes'),
               err => {
                 assert(err, 'db.consumeSigninCode should reject with an error')
                 assert.equal(err.code, 404, 'db.consumeSigninCode should reject with code 404')
@@ -2306,8 +2322,8 @@ module.exports = function(config, DB) {
         // Clean up the account
         .then(() => db.deleteAccount(ACCOUNT.uid))
         .then(() => {
-          // Attempt to use an unused code associated with a deleted account
-          return db.consumeSigninCode(SIGNIN_CODES[3])
+          // Attempt to use an unused fresh code associated with a deleted account
+          return db.consumeSigninCode(SIGNIN_CODES[1])
             .then(
               () => assert(false, 'db.consumeSigninCode should fail for deleted accounts'),
               err => {
