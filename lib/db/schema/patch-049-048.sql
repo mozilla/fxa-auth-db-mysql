@@ -1,4 +1,5 @@
 --DROP PROCEDURE `prune_3`;
+
 --CREATE PROCEDURE `expireSigninCodes_1` (
 --  IN `olderThan` BIGINT UNSIGNED
 --)
