@@ -2215,7 +2215,7 @@ module.exports = function(config, DB) {
                   })
               })
               .then(() => {
-                // Attempt to delete an email that is on the account table
+                // Attempt to a primary email
                 return db.deleteEmail(account.uid, account.normalizedEmail)
                   .then(
                     () => {
