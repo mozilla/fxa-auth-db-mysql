@@ -200,7 +200,7 @@ BEGIN
     ;
 END;
 
-CREATE PROCEDURE `sessionToken_5` (
+CREATE PROCEDURE `sessionToken_4` (
     IN `inTokenId` BINARY(32)
 )
 BEGIN
