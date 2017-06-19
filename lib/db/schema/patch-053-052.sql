@@ -1,3 +1,10 @@
--- DROP PROCEDURE `resetAccountTokens_1`;
+--DROP PROCEDURE `consumeSigninCode_4`;
 
--- UPDATE dbMetadata SET value = '52' WHERE name = 'schema-patch-level';
+--DROP PROCEDURE `createSigninCode_2`;
+
+--ALTER TABLE `signinCodes`
+--DROP COLUMN `flowId`,
+--ALGORITHM = INPLACE, LOCK = NONE;
+
+--UPDATE dbMetadata SET value = '52' WHERE name = 'schema-patch-level';
+
