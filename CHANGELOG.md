@@ -1,3 +1,13 @@
+<a name="1.89.3"></a>
+## [1.89.3](https://github.com/mozilla/fxa-auth-db-mysql/compare/v1.89.2...v1.89.3) (2017-06-21)
+
+
+### Features
+
+* **email:** Don't use subquery on email verify update (#251), r=@jbuck ([102dea4](https://github.com/mozilla/fxa-auth-db-mysql/commit/102dea4))
+
+
+
 <a name="1.89.2"></a>
 ## [1.89.2](https://github.com/mozilla/fxa-auth-db-mysql/compare/v1.89.1...v1.89.2) (2017-06-21)
 
