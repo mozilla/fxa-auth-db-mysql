@@ -41,7 +41,7 @@
     "restify-safe-json-formatter": "0.2.0"
   },
   "devDependencies": {
-    "eslint-plugin-fxa": "mozilla/eslint-plugin-fxa",
+    "eslint-plugin-fxa": "git+https://github.com/mozilla/eslint-plugin-fxa#master",
     "fxa-conventional-changelog": "1.1.0",
     "grunt": "1.0.1",
     "grunt-bump": "0.8.0",
