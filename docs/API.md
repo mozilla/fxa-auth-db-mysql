@@ -298,8 +298,8 @@ Returns:
 
 ## .emailRecord(emailBuffer) ##
 
-Note: Please use `.accountRecord` instead of this method. This method only reads from the account table whereas 
-`.accountRecord` checks the emails table and returns correct account record.
+Note: Using this method will emit a deprecation warning, please use `.accountRecord` instead.
+This method only reads from the account table whereas `.accountRecord` checks the emails table and returns correct account record.
 
 Gets the account record related to this (normalized) email address. The email is provided in a Buffer.
 
