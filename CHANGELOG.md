@@ -1,3 +1,13 @@
+<a name="1.90.1"></a>
+## [1.90.1](https://github.com/mozilla/fxa-auth-db-mysql/compare/v1.90.0...v1.90.1) (2017-07-13)
+
+
+### Bug Fixes
+
+* **nodejs:** update to node:4.8.4-alpine ([f3a6f57](https://github.com/mozilla/fxa-auth-db-mysql/commit/f3a6f57))
+
+
+
 <a name="1.90.0"></a>
 # [1.90.0](https://github.com/mozilla/fxa-auth-db-mysql/compare/v1.89.1...v1.90.0) (2017-06-28)
 
