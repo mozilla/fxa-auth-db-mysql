@@ -1928,7 +1928,7 @@ module.exports = function(config, DB) {
     )
 
     it(
-      'unblockCodes',
+      'consume unblockCodes',
       () => {
         var uid1 = newUuid()
         var code1 = unblockCode()
@@ -1939,7 +1939,7 @@ module.exports = function(config, DB) {
               assert(false, 'consuming unknown code should error')
             },
             function (err) {
-              return db.createUnblockCode(uid1, code1)
+              return db.createUnblockCode(uid1, code1, 2)
             }
           )
           .then(
@@ -1956,6 +1956,49 @@ module.exports = function(config, DB) {
           .then(
             function () {
               assert(false, 'consumed unblock code should not be able to consume again')
+            },
+            function (err) {
+              // consume a consumed code errors
+            }
+          )
+      }
+    )
+
+    it(
+      'try unblockCodes',
+      () => {
+        var uid1 = newUuid()
+        var code1 = unblockCode()
+
+        return db.try(uid1, code1)
+          .then(
+            function () {
+              assert(false, 'consuming unknown code should error')
+            },
+            function (err) {
+              return db.createUnblockCode(uid1, code1, 2)
+            }
+          )
+          .then(
+            function () {
+              return db.tryUnblockCode(uid1, code1)
+            }
+          )
+          .then(
+            function (code) {
+              assert(code.createdAt <= Date.now(), 'returns unblock code timestamp')
+              return db.tryUnblockCode(uid1, code1)
+            }
+          )
+          .then(
+            function (code) {
+              assert(code.createdAt <= Date.now(), 'returns unblock code timestamp')
+              return db.tryUnblockCode(uid1, code1)
+            }
+          )
+          .then(
+            function () {
+              assert(false, 'try unblock code should not be able to once attempts are reached')
             },
             function (err) {
               // consume a consumed code errors
