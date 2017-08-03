@@ -15,7 +15,7 @@ DROP TABLE eventLogPublishState;
 
 DROP INDEX securityEvents_uid_tokenId
 ON securityEvents
-ALGORITHM = INPLACE LOCK = NONE;
+ALGORITHM = INPLACE, LOCK = NONE;
 
 ALTER TABLE securityEvents
 DROP COLUMN tokenId,
