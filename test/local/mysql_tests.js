@@ -26,6 +26,22 @@ describe('MySQL', () => {
   })
 
   it(
+    'forces REQUIRED_CHARSET for connections',
+    () => {
+      const configCharset = Object.assign({}, config)
+      configCharset.charset = 'wat'
+
+      return DB.connect(configCharset)
+        .then(
+          assert.fail,
+          err => {
+            assert.equal(err.message, 'You cannot use any charset besides UTF8MB4_BIN')
+          }
+        )
+    }
+  )
+
+  it(
     'a select on an unknown table should result in an error',
     () => {
       var query = 'SELECT mumble as id FROM mumble.mumble WHERE mumble = ?'
@@ -281,9 +297,8 @@ describe('MySQL', () => {
         .then(
           function(config) {
             assert.equal(typeof config, 'object')
-            // slightly opinionated
             assert.equal(config.protocol41, true, 'protocol41 is true')
-            assert.equal(config.charsetNumber, 33, 'charsetNumber should be 33 (utf8)')
+            assert.equal(config.charsetNumber, 46, 'charsetNumber must be 46 (UTF8MB4_BIN)')
             assert.equal(config.multipleStatements, false, 'multipleStatements should normally be false')
           }
         )
@@ -297,9 +312,10 @@ describe('MySQL', () => {
         .then(
           function(vars) {
             assert.equal(typeof vars, 'object')
-            // Not doing a hardcore enumeration (yet) (or utfmb4)
-            assert.equal(vars['character_set_client'], 'utf8', 'character_set_connection is utf8')
-            assert.equal(vars['character_set_connection'], 'utf8', 'character_set_client is utf8')
+            assert.equal(vars['character_set_client'], 'utf8mb4', 'character_set_connection is utf8mb4')
+            assert.equal(vars['character_set_connection'], 'utf8mb4', 'character_set_client is utf8mb4')
+            assert.equal(vars['character_set_results'], 'utf8mb4', 'character_set_results is utf8mb4')
+            assert.equal(vars['collation_connection'], 'utf8mb4_bin', 'collation_connection is utf8mb4_bin')
           }
         )
     }
