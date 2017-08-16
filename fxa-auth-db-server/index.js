@@ -189,9 +189,9 @@ function createServer(db) {
 
 
   api.put(
-    '/account/:uid/unblock/:code',
+    '/account/:uid/unblock/:code/maxAttempts/:maxAttempts',
     op(function (req) {
-      return db.createUnblockCode(req.params.uid, req.params.code)
+      return db.createUnblockCode(req.params.uid, req.params.code, req.params.maxAttempts)
     })
   )
 
@@ -199,6 +199,13 @@ function createServer(db) {
     '/account/:uid/unblock/:code',
     op(function (req) {
       return db.consumeUnblockCode(req.params.uid, req.params.code)
+    })
+  )
+
+  api.put(
+    '/account/:uid/unblock/:code/try',
+    op(function (req) {
+      return db.tryUnblockCode(req.params.uid, req.params.code)
     })
   )
 
