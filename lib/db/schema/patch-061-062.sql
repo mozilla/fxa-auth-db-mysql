@@ -27,7 +27,7 @@ BEGIN
   WHERE uid = inUid AND id = inId;
 END;
 
-CREATE PROCEDURE `accountDevices_10` (
+CREATE PROCEDURE `accountDevices_11` (
   IN `uidArg` BINARY(16)
 )
 BEGIN
