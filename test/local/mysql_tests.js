@@ -367,13 +367,13 @@ describe('MySQL', () => {
         throw new Error('No device name provided')
       }
 
-      var uid = crypto.randomBytes(16).toString('hex')
-      var id = crypto.randomBytes(16).toString('hex')
-      var sessionToken = crypto.randomBytes(32).toString('hex')
-      var brokenName = 'name'
-      var nameUtf8 = name
+      const uid = crypto.randomBytes(16).toString('hex')
+      const id = crypto.randomBytes(16).toString('hex')
+      const sessionToken = crypto.randomBytes(32).toString('hex')
+      const brokenName = 'name'
+      const nameUtf8 = name
 
-      var query = `CALL createDevice_3(
+      const query = `CALL createDevice_3(
         X'${uid}',
         X'${id}',
         X'${sessionToken}',
@@ -389,11 +389,11 @@ describe('MySQL', () => {
           function(result) {
             assert.deepEqual(result, {}, 'Returned an empty on success')
 
-            var query = `SELECT * FROM devices WHERE id = X'${id}'`
+            const query = `SELECT * FROM devices WHERE id = X'${id}'`
             return db.read(query)
               .then(
                 function(result) {
-                  var row = result[0]
+                  const row = result[0]
                   assert.equal(row.name, brokenName)
                   assert.equal(row.nameUtf8, nameUtf8)
                 },
