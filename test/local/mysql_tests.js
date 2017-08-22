@@ -361,6 +361,64 @@ describe('MySQL', () => {
     }
   )
 
+  it('writes and reads non-BMP characters', () => {
+    function checkDeviceName (name) {
+      if (! name) {
+        throw new Error('No device name provided')
+      }
+
+      var uid = crypto.randomBytes(16).toString('hex')
+      var id = crypto.randomBytes(16).toString('hex')
+      var sessionToken = crypto.randomBytes(32).toString('hex')
+      var brokenName = 'name'
+      var nameUtf8 = name
+
+      var query = `CALL createDevice_3(
+        X'${uid}',
+        X'${id}',
+        X'${sessionToken}',
+        '${brokenName}',
+        '${nameUtf8}',
+        'desktop',
+        1503411408753,
+        'https://updates.push.services.mozilla.com/wpush/v1/foo',
+        'BFZcu6Sa-IP6xVjHH3cIDP2GGOO3MkXG9Da6QoU2ehzoAFSuZ73Rz3naZCGzhgpi8_kccLbURjAqYexaQed5FHA',
+        'jrLebP8XXzzPD6ylenInQQ')`
+      return db.write(query, [])
+        .then(
+          function(result) {
+            assert.deepEqual(result, {}, 'Returned an empty on success')
+
+            var query = `SELECT * FROM devices WHERE id = X'${id}'`
+            return db.read(query)
+              .then(
+                function(result) {
+                  var row = result[0]
+                  assert.equal(row.name, brokenName)
+                  assert.equal(row.nameUtf8, nameUtf8)
+                },
+                function(err) {
+                  assert.fail(err)
+                }
+              )
+          },
+          function(err) {
+            assert.fail(err)
+          }
+        )
+    }
+
+    return P.all([
+      checkDeviceName('name 🍓'),
+      checkDeviceName('User 在 home 上的 Nightly'),
+      checkDeviceName('𝌆 cool name'),
+      checkDeviceName('advanced emoji ✋🏼'),
+      checkDeviceName('Й,К,Л,М,Н,О,П,Р,С,Т,У,Ф,Х,Ц,Ч,Ш,Щ,Ъ,Ы,Ь,Э,Ю,Я'),
+    ]).catch(function (error) {
+      throw error
+    })
+  })
+
   after(() => db.close())
 
 })
