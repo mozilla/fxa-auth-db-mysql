@@ -414,9 +414,7 @@ describe('MySQL', () => {
       checkDeviceName('𝌆 cool name'),
       checkDeviceName('advanced emoji ✋🏼'),
       checkDeviceName('Й,К,Л,М,Н,О,П,Р,С,Т,У,Ф,Х,Ц,Ч,Ш,Щ,Ъ,Ы,Ь,Э,Ю,Я'),
-    ]).catch(function (error) {
-      throw error
-    })
+    ])
   })
 
   after(() => db.close())
