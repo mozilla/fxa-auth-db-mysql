@@ -1,5 +1,11 @@
 CREATE PROCEDURE `prune_4` (IN `olderThan` BIGINT UNSIGNED)
 BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
   SELECT @lockAcquired := GET_LOCK('fxa-auth-server.prune-lock', 3);
 
   IF @lockAcquired THEN
@@ -8,6 +14,8 @@ BEGIN
     DELETE FROM passwordChangeTokens WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
     DELETE FROM unblockCodes WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
     DELETE FROM signinCodes WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
+
+    START TRANSACTION;
 
     DELETE FROM sessionTokens
     WHERE createdAt < olderThan
@@ -24,6 +32,8 @@ BEGIN
     LEFT JOIN sessionTokens AS st
       ON ut.tokenId = st.tokenId
     WHERE st.tokenId IS NULL;
+
+    COMMIT;
 
     SELECT RELEASE_LOCK('fxa-auth-server.prune-lock');
   END IF;
