@@ -14,6 +14,7 @@ BEGIN
     d.callbackURL,
     d.callbackPublicKey,
     d.callbackAuthKey,
+    d.callbackIsExpired,
     s.uaBrowser,
     s.uaBrowserVersion,
     s.uaOS,
