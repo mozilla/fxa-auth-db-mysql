@@ -8,7 +8,7 @@ BEGIN
     d.uid,
     d.id,
     d.sessionTokenId,
-    d.nameUtf8 as name,
+    d.nameUtf8 AS name,
     d.type,
     d.createdAt,
     d.callbackURL,
@@ -147,6 +147,43 @@ BEGIN
   LEFT JOIN unverifiedTokens AS ut
     ON t.tokenId = ut.tokenId
   WHERE t.tokenId = tokenIdArg;
+END;
+
+
+CREATE PROCEDURE `createDevice_4` (
+  IN `inUid` BINARY(16),
+  IN `inId` BINARY(16),
+  IN `inSessionTokenId` BINARY(32),
+  IN `inNameUtf8` VARCHAR(255),
+  IN `inType` VARCHAR(16),
+  IN `inCreatedAt` BIGINT UNSIGNED,
+  IN `inCallbackURL` VARCHAR(255),
+  IN `inCallbackPublicKey` CHAR(88),
+  IN `inCallbackAuthKey` CHAR(24)
+)
+BEGIN
+  INSERT INTO devices(
+    uid,
+    id,
+    sessionTokenId,
+    nameUtf8,
+    type,
+    createdAt,
+    callbackURL,
+    callbackPublicKey,
+    callbackAuthKey
+  )
+  VALUES (
+    inUid,
+    inId,
+    inSessionTokenId,
+    inNameUtf8,
+    inType,
+    inCreatedAt,
+    inCallbackURL,
+    inCallbackPublicKey,
+    inCallbackAuthKey
+  );
 END;
 
 UPDATE dbMetadata SET value = '65' WHERE name = 'schema-patch-level';
