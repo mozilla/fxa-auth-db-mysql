@@ -8,7 +8,7 @@ BEGIN
     d.uid,
     d.id,
     d.sessionTokenId,
-    d.nameUtf8,
+    d.nameUtf8 as name,
     d.type,
     d.createdAt,
     d.callbackURL,
@@ -61,7 +61,7 @@ CREATE PROCEDURE `deviceFromTokenVerificationId_3` (
 BEGIN
     SELECT
         d.id,
-        d.nameUtf8,
+        d.nameUtf8 AS name,
         d.type,
         d.createdAt,
         d.callbackURL,
