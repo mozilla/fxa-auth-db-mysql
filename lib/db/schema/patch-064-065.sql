@@ -1,5 +1,7 @@
 SET NAMES utf8mb4 COLLATE utf8mb4_bin;
 
+UPDATE devices SET nameUtf8 = name WHERE nameUtf8 IS NULL;
+
 CREATE PROCEDURE `accountDevices_12` (
   IN `uidArg` BINARY(16)
 )
