@@ -36,6 +36,7 @@ describe('prune tokens', () => {
       var unblockCode = crypto.randomBytes(4).toString('hex')
       const signinCode = crypto.randomBytes(6).toString('hex')
       const signinCodeHash = crypto.createHash('sha256').update(signinCode).digest()
+      const unprunableSessionTokenId = crypto.randomBytes(16).toString('hex')
       return db.createAccount(user.accountId, user.account)
         .then(function() {
           return db.createPasswordForgotToken(user.passwordForgotTokenId, user.passwordForgotToken)
@@ -48,7 +49,11 @@ describe('prune tokens', () => {
             db.createPasswordForgotToken(user.passwordForgotTokenId, user.passwordForgotToken),
             db.createUnblockCode(user.accountId, unblockCode),
             db.createSessionToken(user.sessionTokenId, user.sessionToken),
-            db.createSigninCode(signinCode, user.accountId, Date.now() - TOKEN_PRUNE_AGE)
+            db.createSessionToken(unprunableSessionTokenId, user.sessionToken),
+            db.createSigninCode(signinCode, user.accountId, Date.now() - TOKEN_PRUNE_AGE),
+            db.write('UPDATE dbMetadata SET value = ? WHERE name = \'sessionTokensPrunedUntil\'', [
+              Date.now() - TOKEN_PRUNE_AGE * 2 + 1
+            ])
           ])
         })
         .then(() => {
@@ -63,6 +68,7 @@ describe('prune tokens', () => {
             db.write(sql.accountResetToken, [TOKEN_PRUNE_AGE, user.accountResetTokenId]),
             db.write(sql.passwordForgotToken, [TOKEN_PRUNE_AGE, user.passwordForgotTokenId]),
             db.write(sql.sessionToken, [TOKEN_PRUNE_AGE, user.sessionTokenId]),
+            db.write(sql.sessionToken, [TOKEN_PRUNE_AGE * 2, unprunableSessionTokenId]),
             db.write(sql.unblockCode, [TOKEN_PRUNE_AGE, user.accountId])
           ])
         })
@@ -71,7 +77,8 @@ describe('prune tokens', () => {
           return P.all([
             db.accountResetToken(user.accountResetTokenId),
             db.passwordForgotToken(user.passwordForgotTokenId),
-            db.sessionToken(user.sessionTokenId)
+            db.sessionToken(user.sessionTokenId),
+            db.sessionToken(unprunableSessionTokenId)
           ])
         })
         .then(function() {
@@ -139,6 +146,8 @@ describe('prune tokens', () => {
         .then(res => {
           assert.equal(res.length, 0, 'db.read should return an empty recordset')
         })
+        // The unprunable session token should still exist
+        .then(() => db.sessionToken(unprunableSessionTokenId))
     }
   )
 
