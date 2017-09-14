@@ -34,27 +34,25 @@ BEGIN
     START TRANSACTION;
 
     -- Jiggery-pokery #1: Find out how far we got on previous iterations.
-    SELECT @newerThan := value FROM dbMetadata WHERE name = 'sessionTokensPrunedUntil';
+    SELECT @pruneFrom := value FROM dbMetadata WHERE name = 'sessionTokensPrunedUntil';
 
-    -- Jiggery-pokery #2: Store the pruned session tokens in a temporary table
-    --                    ahead of time, so we can refer to createdAt post-facto.
-    CREATE TEMPORARY TABLE prunedSessionTokens (
-      tokenId BINARY(32) PRIMARY KEY,
-      createdAt BIGINT UNSIGNED NOT NULL,
-      INDEX prunedSessionTokens_createdAt (createdAt)
-    ) AS
-      SELECT tokenId, createdAt FROM sessionTokens
-      WHERE createdAt >= @newerThan AND createdAt < olderThan
+    -- Jiggery-pokery #2: Find out how far we will get on this iteration.
+    SELECT @pruneUntil := MAX(createdAt) FROM (
+      SELECT createdAt FROM sessionTokens
+      WHERE createdAt >= @pruneFrom AND createdAt < olderThan
       AND NOT EXISTS (
         SELECT sessionTokenId FROM devices
         WHERE sessionTokenId = sessionTokens.tokenId
       )
       ORDER BY createdAt
-      LIMIT 10000;
+      LIMIT 10000
+    ) AS prunees;
 
     DELETE FROM sessionTokens
-    WHERE tokenId IN (
-      SELECT tokenId FROM prunedSessionTokens
+    WHERE createdAt > @pruneFrom AND createdAt <= @pruneUntil
+    AND NOT EXISTS (
+      SELECT sessionTokenId FROM devices
+      WHERE sessionTokenId = sessionTokens.tokenId
     );
 
     DELETE ut
@@ -64,14 +62,9 @@ BEGIN
     WHERE st.tokenId IS NULL;
 
     -- Jiggery-pokery #3: Tell following iterations how far we got.
-    SELECT @prunedUntil := MAX(createdAt) FROM prunedSessionTokens;
-
     UPDATE dbMetadata
-    SET value = @prunedUntil
+    SET value = @pruneUntil
     WHERE name = 'sessionTokensPrunedUntil';
-
-    -- Jiggery-pokery #4: Tidy up.
-    DROP TABLE prunedSessionTokens;
 
     COMMIT;
 
