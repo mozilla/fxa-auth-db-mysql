@@ -57,9 +57,9 @@ BEGIN
 
     DELETE ut
     FROM unverifiedTokens AS ut
-    LEFT JOIN sessionTokens AS st
-      ON ut.tokenId = st.tokenId
-    WHERE st.tokenId IS NULL;
+    LEFT JOIN sessionTokens AS st ON ut.tokenId = st.tokenId
+    LEFT JOIN keyFetchTokens AS kt ON ut.tokenId = kt.tokenId
+    WHERE st.tokenId IS NULL AND kt.tokenId IS NULL;
 
     -- Jiggery-pokery #3: Tell following iterations how far we got.
     UPDATE dbMetadata

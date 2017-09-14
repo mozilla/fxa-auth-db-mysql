@@ -32,11 +32,13 @@ describe('prune tokens', () => {
   it(
     'prune tokens',
     () => {
-      var user = fake.newUserDataBuffer()
-      var unblockCode = crypto.randomBytes(4).toString('hex')
+      const user = fake.newUserDataBuffer()
+      const unblockCode = crypto.randomBytes(4).toString('hex')
       const signinCode = crypto.randomBytes(6).toString('hex')
       const signinCodeHash = crypto.createHash('sha256').update(signinCode).digest()
       const unprunableSessionTokenId = crypto.randomBytes(16).toString('hex')
+      const tokenVerificationId = crypto.randomBytes(8).toString('hex')
+      const unverifiedKeyFetchToken = Object.assign({}, user.keyFetchToken, { tokenVerificationId })
       return db.createAccount(user.accountId, user.account)
         .then(function() {
           return db.createPasswordForgotToken(user.passwordForgotTokenId, user.passwordForgotToken)
@@ -46,6 +48,7 @@ describe('prune tokens', () => {
         })
         .then(() => {
           return P.all([
+            db.createKeyFetchToken(user.keyFetchTokenId, unverifiedKeyFetchToken),
             db.createPasswordForgotToken(user.passwordForgotTokenId, user.passwordForgotToken),
             db.createUnblockCode(user.accountId, unblockCode),
             db.createSessionToken(user.sessionTokenId, user.sessionToken),
@@ -60,12 +63,14 @@ describe('prune tokens', () => {
           // Set createdAt to be older than prune date
           const sql = {
             accountResetToken: 'UPDATE accountResetTokens SET createdAt = createdAt - ? WHERE tokenId = ?',
+            keyFetchToken: 'UPDATE keyFetchTokens SET createdAt = createdAt - ? WHERE tokenId = ?',
             passwordForgotToken: 'UPDATE passwordForgotTokens SET createdAt = createdAt - ? WHERE tokenId = ?',
             sessionToken: 'UPDATE sessionTokens SET createdAt = createdAt - ? WHERE tokenId = ?',
             unblockCode: 'UPDATE unblockCodes SET createdAt = createdAt - ? WHERE uid = ?'
           }
           return P.all([
             db.write(sql.accountResetToken, [TOKEN_PRUNE_AGE, user.accountResetTokenId]),
+            db.write(sql.keyFetchToken, [TOKEN_PRUNE_AGE, user.keyFetchTokenId]),
             db.write(sql.passwordForgotToken, [TOKEN_PRUNE_AGE, user.passwordForgotTokenId]),
             db.write(sql.sessionToken, [TOKEN_PRUNE_AGE, user.sessionTokenId]),
             db.write(sql.sessionToken, [TOKEN_PRUNE_AGE * 2, unprunableSessionTokenId]),
@@ -76,6 +81,7 @@ describe('prune tokens', () => {
         .then(() => {
           return P.all([
             db.accountResetToken(user.accountResetTokenId),
+            db.keyFetchToken(user.keyFetchTokenId),
             db.passwordForgotToken(user.passwordForgotTokenId),
             db.sessionToken(user.sessionTokenId),
             db.sessionToken(unprunableSessionTokenId)
@@ -148,6 +154,12 @@ describe('prune tokens', () => {
         })
         // The unprunable session token should still exist
         .then(() => db.sessionToken(unprunableSessionTokenId))
+        // The key-fetch token should still exist
+        .then(() => db.keyFetchTokenWithVerificationStatus(user.keyFetchTokenId))
+        .then(keyFetchToken => {
+          // unverifiedTokens must not be pruned if they belong to keyFetchTokens
+          assert.equal(keyFetchToken.tokenVerificationId, tokenVerificationId)
+        })
     }
   )
 
