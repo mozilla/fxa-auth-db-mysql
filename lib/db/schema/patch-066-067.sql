@@ -50,23 +50,19 @@ BEGIN
       LIMIT 10000
     ) AS prunees;
 
-    -- Step 3: Prune sessionTokens.
-    DELETE FROM sessionTokens
-    WHERE createdAt > @pruneFrom AND createdAt <= @pruneUntil
+    -- Step 3: Prune sessionTokens and unverifiedTokens.
+    DELETE st, ut
+    FROM sessionTokens AS st
+    LEFT JOIN unverifiedTokens AS ut
+    ON st.tokenId = ut.tokenId
+    WHERE st.createdAt > @pruneFrom
+    AND st.createdAt <= @pruneUntil
     AND NOT EXISTS (
       SELECT sessionTokenId FROM devices
-      WHERE uid = sessionTokens.uid
-      AND sessionTokenId = sessionTokens.tokenId
+      WHERE uid = st.uid AND sessionTokenId = st.tokenId
     );
 
-    -- Step 4: Prune unverifiedTokens.
-    DELETE ut
-    FROM unverifiedTokens AS ut
-    LEFT JOIN sessionTokens AS st ON ut.tokenId = st.tokenId
-    LEFT JOIN keyFetchTokens AS kt ON ut.tokenId = kt.tokenId
-    WHERE st.tokenId IS NULL AND kt.tokenId IS NULL;
-
-    -- Step 5: Tell following iterations how far we got.
+    -- Step 4: Tell following iterations how far we got.
     UPDATE dbMetadata
     SET value = @pruneUntil
     WHERE name = 'sessionTokensPrunedUntil';
