@@ -693,7 +693,6 @@ module.exports = function (config, DB) {
               assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
               assert.equal(token.createdAt, changePasswordTokenData.createdAt, 'createdAt is correct')
               assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is set correctly')
-              assert.equal(token.email, accountData.email, 'email is set correctly')
             })
         })
 
@@ -716,7 +715,6 @@ module.exports = function (config, DB) {
               assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
               assert.equal(token.createdAt, anotherChangePasswordTokenData.createdAt, 'createdAt is correct')
               assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is set correctly')
-              assert.equal(token.email, accountData.email, 'email is set correctly')
             })
         })
       })
@@ -876,7 +874,7 @@ module.exports = function (config, DB) {
       })
 
       it('should fail for session with no device', () => {
-        return db.deviceFromTokenVerificationId(accountData.uid, sessionTokenData.tokenId)
+        return db.deviceFromTokenVerificationId(accountData.uid, sessionTokenData.tokenVerificationId)
           .then(assert.fail, (err) => {
             assert.equal(err.code, 404, 'err.code')
             assert.equal(err.errno, 116, 'err.errno')
