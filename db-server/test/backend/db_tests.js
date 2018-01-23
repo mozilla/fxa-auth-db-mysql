@@ -170,7 +170,7 @@ module.exports = function (config, DB) {
       beforeEach(() => {
         accountData = createAccount()
         return db.accountExists(accountData.emailBuffer)
-          .then(() => assert.fail, (err) => assert.equal(err.code, 404, 'Not found'))
+          .then(assert.fail, (err) => assert.equal(err.code, 404, 'Not found'))
           .then(() => db.createAccount(accountData.uid, accountData))
       })
 
@@ -178,7 +178,7 @@ module.exports = function (config, DB) {
         it('should create account', () => {
           accountData = createAccount()
           return db.accountExists(accountData.emailBuffer)
-            .then(() => assert.fail, (err) => assert.equal(err.code, 404, 'Not found'))
+            .then(assert.fail, (err) => assert.equal(err.code, 404, 'Not found'))
             .then(() => db.createAccount(accountData.uid, accountData))
             .then((account) => {
               assert.deepEqual(account, {}, 'Returned an empty object on account creation')
@@ -1015,13 +1015,10 @@ module.exports = function (config, DB) {
 
       it('should delete session when device is deleted', () => {
         return db.deleteDevice(accountData.uid, deviceInfo.deviceId)
-          .then((result) => {
-            assert.deepEqual(result, {}, 'returned empty object')
-            return db.sessionWithDevice(sessionTokenData.tokenId)
-          })
-          .then(assert.fail, (err) => {
-            assert.equal(err.code, 404, 'err.code')
-            assert.equal(err.errno, 116, 'err.errno')
+          .then(result => {
+            assert.deepEqual(result, {sessionTokenId: sessionTokenData.tokenId})
+
+            // Fetch all of the devices for the account
             return db.accountDevices(accountData.uid)
           })
           .then((devices) => assert.equal(devices.length, 0, 'devices length 0'))
