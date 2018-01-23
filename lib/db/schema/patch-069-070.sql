@@ -7,11 +7,8 @@ CREATE PROCEDURE `deleteDevice_3` (
   IN `idArg` BINARY(16)
 )
 BEGIN
-  SELECT sessionTokens.tokenId
-  FROM devices INNER JOIN sessionTokens
-    ON devices.sessionTokenId = sessionTokens.tokenId
-  WHERE devices.uid = uidArg
-    AND devices.id = idArg;
+  SELECT devices.sessionTokenId FROM devices
+  WHERE devices.uid = uidArg AND devices.id = idArg;
 
   DELETE devices, sessionTokens, unverifiedTokens
   FROM devices

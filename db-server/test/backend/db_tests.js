@@ -1376,7 +1376,7 @@ module.exports = function(config, DB) {
             return db.deleteDevice(ACCOUNT.uid, deviceId)
           })
           .then(function (result) {
-            assert.deepEqual(result, { tokenId: newSessionTokenId })
+            assert.deepEqual(result, { sessionTokenId: newSessionTokenId })
 
             // Fetch all of the devices for the account
             return db.accountDevices(ACCOUNT.uid)
@@ -1424,7 +1424,7 @@ module.exports = function(config, DB) {
             return db.deleteDevice(ACCOUNT.uid, newDeviceId)
           })
           .then(result => {
-            assert.deepEqual(result, { tokenId: sessionTokenId })
+            assert.deepEqual(result, { sessionTokenId })
 
             // Fetch all of the devices for the account
             return db.accountDevices(ACCOUNT.uid)

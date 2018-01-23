@@ -809,7 +809,8 @@ Parameters:
 Returns:
 
 * Resolves with:
-  * An object containing a `tokenId` property identifying the associated session token,
+  * An object containing a `sessionTokenId` property
+    identifying the associated session token,
     which was also deleted
 * Rejects with:
   * Any error from the underlying storage system (wrapped in `error.wrap()`)
