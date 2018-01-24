@@ -57,7 +57,9 @@ function createEmail(data) {
 function hex(len) {
   return Buffer(crypto.randomBytes(len).toString('hex'), 'hex')
 }
-function hex6() { return hex(6) }
+function hex6() {
+  return hex(6)
+}
 function hex16() {
   return hex(16)
 }
@@ -159,94 +161,79 @@ module.exports = function (config, DB) {
           db = db_
           return db.ping()
         })
-        .then(() => {
-          accountData = createAccount()
-          return db.createAccount(accountData.uid, accountData)
-        })
     })
 
-    describe('account', () => {
-      let accountData
+    beforeEach(() => {
+      accountData = createAccount()
+      return db.createAccount(accountData.uid, accountData)
+    })
+
+    describe('db.account', () => {
       beforeEach(() => {
-        accountData = createAccount()
         return db.accountExists(accountData.emailBuffer)
+          .then((exists) => assert(exists, 'account exists for this email address'))
+      })
+
+      it('should create account', () => {
+        const anotherAccountData = createAccount()
+        return db.accountExists(anotherAccountData.emailBuffer)
           .then(assert.fail, (err) => assert.equal(err.code, 404, 'Not found'))
-          .then(() => db.createAccount(accountData.uid, accountData))
+          .then(() => db.createAccount(anotherAccountData.uid, anotherAccountData))
+          .then((account) => {
+            assert.deepEqual(account, {}, 'Returned an empty object on account creation')
+            return db.accountExists(Buffer(anotherAccountData.email))
+              .then((exists) => assert(exists, 'account exists for this email address'), assert.fail)
+          })
       })
 
-      describe('db.createAccount', () => {
-        it('should create account', () => {
-          accountData = createAccount()
-          return db.accountExists(accountData.emailBuffer)
-            .then(assert.fail, (err) => assert.equal(err.code, 404, 'Not found'))
-            .then(() => db.createAccount(accountData.uid, accountData))
-            .then((account) => {
-              assert.deepEqual(account, {}, 'Returned an empty object on account creation')
-              return db.accountExists(Buffer(accountData.email))
-                .then((exists) => assert(exists, 'account exists for this email address'), assert.fail)
-            })
-        })
-
-        it('fails with duplicate account', () => {
-          return db.createAccount(accountData.uid, accountData)
-            .then(assert.fail, (err) => {
-              assert(err, 'trying to create the same account produces an error')
-              assert.equal(err.code, 409, 'error code')
-              assert.equal(err.errno, 101, 'error errno')
-              assert.equal(err.message, 'Record already exists', 'message')
-              assert.equal(err.error, 'Conflict', 'error')
-            })
-        })
+      it('should fail with duplicate account', () => {
+        return db.createAccount(accountData.uid, accountData)
+          .then(assert.fail, (err) => {
+            assert(err, 'trying to create the same account produces an error')
+            assert.equal(err.code, 409, 'error code')
+            assert.equal(err.errno, 101, 'error errno')
+            assert.equal(err.message, 'Record already exists', 'message')
+            assert.equal(err.error, 'Conflict', 'error')
+          })
       })
 
-      describe('db.account', () => {
-        it('should return account', () => {
-          return db.account(accountData.uid)
-            .then((account) => {
-              assert.deepEqual(account.uid, accountData.uid, 'uid')
-              assert.equal(account.email, accountData.email, 'email')
-              assert.deepEqual(account.emailCode, accountData.emailCode, 'emailCode')
-              assert.equal(!! account.emailVerified, accountData.emailVerified, 'emailVerified')
-              assert.deepEqual(account.kA, accountData.kA, 'kA')
-              assert.deepEqual(account.wrapWrapKb, accountData.wrapWrapKb, 'wrapWrapKb')
-              assert(! account.verifyHash, 'verifyHash field should be absent')
-              assert.deepEqual(account.authSalt, accountData.authSalt, 'authSalt')
-              assert.equal(account.verifierVersion, accountData.verifierVersion, 'verifierVersion')
-              assert.equal(account.createdAt, accountData.createdAt, 'createdAt')
-              assert.equal(account.verifierSetAt, accountData.createdAt, 'verifierSetAt has been set to the same as createdAt')
-              assert.equal(account.locale, accountData.locale, 'locale')
-            })
-        })
+      it('should return account', () => {
+        return db.account(accountData.uid)
+          .then((account) => {
+            assert.deepEqual(account.uid, accountData.uid, 'uid')
+            assert.equal(account.email, accountData.email, 'email')
+            assert.deepEqual(account.emailCode, accountData.emailCode, 'emailCode')
+            assert.equal(!! account.emailVerified, accountData.emailVerified, 'emailVerified')
+            assert.deepEqual(account.kA, accountData.kA, 'kA')
+            assert.deepEqual(account.wrapWrapKb, accountData.wrapWrapKb, 'wrapWrapKb')
+            assert(! account.verifyHash, 'verifyHash field should be absent')
+            assert.deepEqual(account.authSalt, accountData.authSalt, 'authSalt')
+            assert.equal(account.verifierVersion, accountData.verifierVersion, 'verifierVersion')
+            assert.equal(account.createdAt, accountData.createdAt, 'createdAt')
+            assert.equal(account.verifierSetAt, accountData.createdAt, 'verifierSetAt has been set to the same as createdAt')
+            assert.equal(account.locale, accountData.locale, 'locale')
+          })
       })
 
-      describe('db.emailRecord', () => {
-        it('should return email record', () => {
-          return db.emailRecord(accountData.emailBuffer)
-            .then((account) => {
-              assert.deepEqual(account.uid, accountData.uid, 'uid')
-              assert.equal(account.email, accountData.email, 'email')
-              assert.deepEqual(account.emailCode, accountData.emailCode, 'emailCode')
-              assert.equal(!! account.emailVerified, accountData.emailVerified, 'emailVerified')
-              assert.deepEqual(account.kA, accountData.kA, 'kA')
-              assert.deepEqual(account.wrapWrapKb, accountData.wrapWrapKb, 'wrapWrapKb')
-              assert(! account.verifyHash, 'verifyHash field should be absent')
-              assert.deepEqual(account.authSalt, accountData.authSalt, 'authSalt')
-              assert.equal(account.verifierVersion, accountData.verifierVersion, 'verifierVersion')
-              assert.equal(account.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt')
-              // locale not returned with .emailRecord() (unlike .account() when it is)
-            })
-        })
+      it('should return email record', () => {
+        return db.emailRecord(accountData.emailBuffer)
+          .then((account) => {
+            assert.deepEqual(account.uid, accountData.uid, 'uid')
+            assert.equal(account.email, accountData.email, 'email')
+            assert.deepEqual(account.emailCode, accountData.emailCode, 'emailCode')
+            assert.equal(!! account.emailVerified, accountData.emailVerified, 'emailVerified')
+            assert.deepEqual(account.kA, accountData.kA, 'kA')
+            assert.deepEqual(account.wrapWrapKb, accountData.wrapWrapKb, 'wrapWrapKb')
+            assert(! account.verifyHash, 'verifyHash field should be absent')
+            assert.deepEqual(account.authSalt, accountData.authSalt, 'authSalt')
+            assert.equal(account.verifierVersion, accountData.verifierVersion, 'verifierVersion')
+            assert.equal(account.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt')
+            assert.equal(account.hasOwnProperty('locale'), false, 'locale not returned')
+          })
       })
-
     })
 
     describe('db.checkPassword', () => {
-      let accountData
-      beforeEach(() => {
-        accountData = createAccount()
-        return db.createAccount(accountData.uid, accountData)
-      })
-
       it('should fail with incorrect password', () => {
         return db.checkPassword(accountData.uid, {verifyHash: Buffer(crypto.randomBytes(32))})
           .then(assert.fail, (err) => {
@@ -269,178 +256,165 @@ module.exports = function (config, DB) {
     })
 
     describe('session token handling', () => {
-      let accountData, sessionTokenData
+      let sessionTokenData
       beforeEach(() => {
+        sessionTokenData = makeMockSessionToken(accountData.uid, false)
+        return db.createSessionToken(sessionTokenData.tokenId, sessionTokenData)
+      })
+
+      it('should get sessions', () => {
+        return db.sessions(accountData.uid)
+          .then((sessions) => {
+            assert(Array.isArray(sessions), 'sessions is an array')
+            assert.equal(sessions.length, 1, 'sessions has one item')
+
+            assert.equal(Object.keys(sessions[0]).length, 18, 'session has correct properties')
+            assert.equal(sessions[0].tokenId.toString('hex'), sessionTokenData.tokenId.toString('hex'), 'tokenId is correct')
+            assert.equal(sessions[0].uid.toString('hex'), accountData.uid.toString('hex'), 'uid is correct')
+            assert.equal(sessions[0].createdAt, sessionTokenData.createdAt, 'createdAt is correct')
+            assert.equal(sessions[0].uaBrowser, sessionTokenData.uaBrowser, 'uaBrowser is correct')
+            assert.equal(sessions[0].uaBrowserVersion, sessionTokenData.uaBrowserVersion, 'uaBrowserVersion is correct')
+            assert.equal(sessions[0].uaOS, sessionTokenData.uaOS, 'uaOS is correct')
+            assert.equal(sessions[0].uaOSVersion, sessionTokenData.uaOSVersion, 'uaOSVersion is correct')
+            assert.equal(sessions[0].uaDeviceType, sessionTokenData.uaDeviceType, 'uaDeviceType is correct')
+            assert.equal(sessions[0].uaFormFactor, sessionTokenData.uaFormFactor, 'uaFormFactor is correct')
+            assert.equal(sessions[0].lastAccessTime, sessionTokenData.createdAt, 'lastAccessTime is correct')
+          })
+      })
+
+      it('should create session', () => {
         accountData = createAccount()
         sessionTokenData = makeMockSessionToken(accountData.uid, false)
-        return P.all([db.createAccount(accountData.uid, accountData), db.createSessionToken(sessionTokenData.tokenId, sessionTokenData)])
+        return db.createAccount(accountData.uid, accountData)
+          .then(() => db.createSessionToken(sessionTokenData.tokenId, sessionTokenData))
+          .then((result) => {
+            assert.deepEqual(result, {}, 'Returned an empty object on session token creation')
+            return db.sessions(accountData.uid)
+          })
+          .then((sessions) => {
+            assert(Array.isArray(sessions), 'sessions is an array')
+            assert.equal(sessions.length, 1, 'sessions has one item')
+          })
       })
 
-      describe('db.sessions', () => {
-        it('should get sessions', () => {
-          return db.sessions(accountData.uid)
-            .then((sessions) => {
-              assert(Array.isArray(sessions), 'sessions is an array')
-              assert.equal(sessions.length, 1, 'sessions has one item')
-
-              assert.equal(Object.keys(sessions[0]).length, 18, 'session has correct properties')
-              assert.equal(sessions[0].tokenId.toString('hex'), sessionTokenData.tokenId.toString('hex'), 'tokenId is correct')
-              assert.equal(sessions[0].uid.toString('hex'), accountData.uid.toString('hex'), 'uid is correct')
-              assert.equal(sessions[0].createdAt, sessionTokenData.createdAt, 'createdAt is correct')
-              assert.equal(sessions[0].uaBrowser, sessionTokenData.uaBrowser, 'uaBrowser is correct')
-              assert.equal(sessions[0].uaBrowserVersion, sessionTokenData.uaBrowserVersion, 'uaBrowserVersion is correct')
-              assert.equal(sessions[0].uaOS, sessionTokenData.uaOS, 'uaOS is correct')
-              assert.equal(sessions[0].uaOSVersion, sessionTokenData.uaOSVersion, 'uaOSVersion is correct')
-              assert.equal(sessions[0].uaDeviceType, sessionTokenData.uaDeviceType, 'uaDeviceType is correct')
-              assert.equal(sessions[0].uaFormFactor, sessionTokenData.uaFormFactor, 'uaFormFactor is correct')
-              assert.equal(sessions[0].lastAccessTime, sessionTokenData.createdAt, 'lastAccessTime is correct')
-            })
-        })
+      it('should get session token', () => {
+        return db.sessionToken(sessionTokenData.tokenId)
+          .then((token) => {
+            assert.equal(token.hasOwnProperty('tokenId'), false, 'tokenId is not returned')
+            assert.deepEqual(token.tokenData, sessionTokenData.data, 'token data matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, sessionTokenData.createdAt, 'createdAt is correct')
+            assert.equal(token.uaBrowser, sessionTokenData.uaBrowser, 'uaBrowser is correct')
+            assert.equal(token.uaBrowserVersion, sessionTokenData.uaBrowserVersion, 'uaBrowserVersion is correct')
+            assert.equal(token.uaOS, sessionTokenData.uaOS, 'uaOS is correct')
+            assert.equal(token.uaOSVersion, sessionTokenData.uaOSVersion, 'uaOSVersion is correct')
+            assert.equal(token.uaDeviceType, sessionTokenData.uaDeviceType, 'uaDeviceType is correct')
+            assert.equal(token.uaFormFactor, sessionTokenData.uaFormFactor, 'uaFormFactor is correct')
+            assert.equal(token.lastAccessTime, sessionTokenData.createdAt, 'lastAccessTime was set')
+            assert.equal(!! token.emailVerified, accountData.emailVerified, 'token emailVerified is same as account emailVerified')
+            assert.equal(token.email, accountData.email, 'token email same as account email')
+            assert.deepEqual(token.emailCode, accountData.emailCode, 'token emailCode same as account emailCode')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
+            assert.equal(token.accountCreatedAt, accountData.createdAt, 'accountCreatedAt is correct')
+          })
       })
 
-      describe('db.createSessionToken', () => {
-        it('should creates session', () => {
-          accountData = createAccount()
-          sessionTokenData = makeMockSessionToken(accountData.uid, false)
-          return db.createAccount(accountData.uid, accountData)
-            .then(() => db.createSessionToken(sessionTokenData.tokenId, sessionTokenData))
-            .then((result) => {
-              assert.deepEqual(result, {}, 'Returned an empty object on session token creation')
-              return db.sessions(accountData.uid)
-            })
-            .then((sessions) => {
-              assert(Array.isArray(sessions), 'sessions is an array')
-              assert.equal(sessions.length, 1, 'sessions has one item')
-            })
-        })
+      it('should update token', () => {
+        const sessionTokenUpdates = {
+          uaBrowser: 'foo',
+          uaBrowserVersion: '1',
+          uaOS: 'bar',
+          uaOSVersion: '2',
+          uaDeviceType: 'baz',
+          lastAccessTime: 42
+        }
+        return db.updateSessionToken(sessionTokenData.tokenId, sessionTokenUpdates)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'Returned an empty object on session token update')
+            return db.sessionToken(sessionTokenData.tokenId)
+          })
+          .then((token) => {
+            assert.deepEqual(token.tokenData, sessionTokenData.data, 'token data matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, sessionTokenData.createdAt, 'createdAt is correct')
+            assert.equal(token.uaBrowser, 'foo', 'uaBrowser is correct')
+            assert.equal(token.uaBrowserVersion, '1', 'uaBrowserVersion is correct')
+            assert.equal(token.uaOS, 'bar', 'uaOS is correct')
+            assert.equal(token.uaOSVersion, '2', 'uaOSVersion is correct')
+            assert.equal(token.uaDeviceType, 'baz', 'uaDeviceType is correct')
+            assert.equal(token.uaFormFactor, sessionTokenData.uaFormFactor, 'uaFormFactor is correct')
+            assert.equal(token.lastAccessTime, 42, 'lastAccessTime is correct')
+            assert.equal(!! token.emailVerified, accountData.emailVerified, 'token emailVerified is same as account emailVerified')
+            assert.equal(token.email, accountData.email, 'token email same as account email')
+            assert.deepEqual(token.emailCode, accountData.emailCode, 'token emailCode same as account emailCode')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
+            assert.equal(token.accountCreatedAt, accountData.createdAt, 'accountCreatedAt is correct')
+            assert.equal(token.mustVerify, undefined, 'mustVerify is undefined')
+            assert.equal(token.tokenVerificationId, undefined, 'tokenVerificationId is undefined')
+          })
       })
 
-      describe('db.sessionToken', () => {
-        it('should get token', () => {
-          return db.sessionToken(sessionTokenData.tokenId)
-            .then((token) => {
-              // tokenId is not returned from db.sessionToken()
-              assert.deepEqual(token.tokenData, sessionTokenData.data, 'token data matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, sessionTokenData.createdAt, 'createdAt is correct')
-              assert.equal(token.uaBrowser, sessionTokenData.uaBrowser, 'uaBrowser is correct')
-              assert.equal(token.uaBrowserVersion, sessionTokenData.uaBrowserVersion, 'uaBrowserVersion is correct')
-              assert.equal(token.uaOS, sessionTokenData.uaOS, 'uaOS is correct')
-              assert.equal(token.uaOSVersion, sessionTokenData.uaOSVersion, 'uaOSVersion is correct')
-              assert.equal(token.uaDeviceType, sessionTokenData.uaDeviceType, 'uaDeviceType is correct')
-              assert.equal(token.uaFormFactor, sessionTokenData.uaFormFactor, 'uaFormFactor is correct')
-              assert.equal(token.lastAccessTime, sessionTokenData.createdAt, 'lastAccessTime was set')
-              assert.equal(!! token.emailVerified, accountData.emailVerified, 'token emailVerified is same as account emailVerified')
-              assert.equal(token.email, accountData.email, 'token email same as account email')
-              assert.deepEqual(token.emailCode, accountData.emailCode, 'token emailCode same as account emailCode')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
-              assert.equal(token.accountCreatedAt, accountData.createdAt, 'accountCreatedAt is correct')
-            })
-        })
+      it('should get verification state', () => {
+        return db.sessionTokenWithVerificationStatus(sessionTokenData.tokenId)
+          .then((token) => {
+            assert.deepEqual(token.tokenData, sessionTokenData.data, 'token data matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, sessionTokenData.createdAt, 'createdAt is correct')
+            assert.equal(token.uaBrowser, sessionTokenData.uaBrowser, 'uaBrowser is correct')
+            assert.equal(token.uaBrowserVersion, sessionTokenData.uaBrowserVersion, 'uaBrowserVersion is correct')
+            assert.equal(token.uaOS, sessionTokenData.uaOS, 'uaOS is correct')
+            assert.equal(token.uaOSVersion, sessionTokenData.uaOSVersion, 'uaOSVersion is correct')
+            assert.equal(token.uaDeviceType, sessionTokenData.uaDeviceType, 'uaDeviceType is correct')
+            assert.equal(token.uaFormFactor, sessionTokenData.uaFormFactor, 'uaFormFactor is correct')
+            assert.equal(token.lastAccessTime, sessionTokenData.createdAt, 'lastAccessTime was set')
+            assert.equal(!! token.emailVerified, accountData.emailVerified, 'token emailVerified is same as account emailVerified')
+            assert.equal(token.email, accountData.email, 'token email same as account email')
+            assert.deepEqual(token.emailCode, accountData.emailCode, 'token emailCode same as account emailCode')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
+            assert.equal(token.accountCreatedAt, accountData.createdAt, 'accountCreatedAt is correct')
+            assert.equal(!! token.mustVerify, !! sessionTokenData.mustVerify, 'mustVerify is correct')
+            assert.deepEqual(token.tokenVerificationId, sessionTokenData.tokenVerificationId, 'tokenVerificationId is correct')
+
+          })
       })
 
-      describe('db.updateSessionToken', () => {
-        it('should update token', () => {
-          const sessionTokenUpdates = {
-            uaBrowser: 'foo',
-            uaBrowserVersion: '1',
-            uaOS: 'bar',
-            uaOSVersion: '2',
-            uaDeviceType: 'baz',
-            lastAccessTime: 42
-          }
-          return db.updateSessionToken(sessionTokenData.tokenId, sessionTokenUpdates)
-            .then((result) => {
-              assert.deepEqual(result, {}, 'Returned an empty object on session token update')
-              return db.sessionToken(sessionTokenData.tokenId)
-            })
-            .then((token) => {
-              assert.deepEqual(token.tokenData, sessionTokenData.data, 'token data matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, sessionTokenData.createdAt, 'createdAt is correct')
-              assert.equal(token.uaBrowser, 'foo', 'uaBrowser is correct')
-              assert.equal(token.uaBrowserVersion, '1', 'uaBrowserVersion is correct')
-              assert.equal(token.uaOS, 'bar', 'uaOS is correct')
-              assert.equal(token.uaOSVersion, '2', 'uaOSVersion is correct')
-              assert.equal(token.uaDeviceType, 'baz', 'uaDeviceType is correct')
-              assert.equal(token.uaFormFactor, sessionTokenData.uaFormFactor, 'uaFormFactor is correct')
-              assert.equal(token.lastAccessTime, 42, 'lastAccessTime is correct')
-              assert.equal(!! token.emailVerified, accountData.emailVerified, 'token emailVerified is same as account emailVerified')
-              assert.equal(token.email, accountData.email, 'token email same as account email')
-              assert.deepEqual(token.emailCode, accountData.emailCode, 'token emailCode same as account emailCode')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
-              assert.equal(token.accountCreatedAt, accountData.createdAt, 'accountCreatedAt is correct')
-              assert.equal(token.mustVerify, undefined, 'mustVerify is undefined')
-              assert.equal(token.tokenVerificationId, undefined, 'tokenVerificationId is undefined')
-            })
-        })
+      it('should fail session verification for invalid tokenId', () => {
+        return db.verifyTokens(hex16(), accountData)
+          .then(assert.fail, (err) => {
+            assert.equal(err.errno, 116, 'err.errno is correct')
+            assert.equal(err.code, 404, 'err.code is correct')
+
+            return db.sessionTokenWithVerificationStatus(sessionTokenData.tokenId)
+          })
+          .then((token) => {
+            assert.equal(!! token.mustVerify, !! sessionTokenData.mustVerify, 'mustVerify is correct')
+            assert.deepEqual(token.tokenVerificationId, sessionTokenData.tokenVerificationId, 'tokenVerificationId is correct')
+          })
       })
 
-      describe('db.sessionTokenWithVerificationStatus', () => {
-        it('should get verification state', () => {
-          return db.sessionTokenWithVerificationStatus(sessionTokenData.tokenId)
-            .then((token) => {
-              assert.deepEqual(token.tokenData, sessionTokenData.data, 'token data matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, sessionTokenData.createdAt, 'createdAt is correct')
-              assert.equal(token.uaBrowser, sessionTokenData.uaBrowser, 'uaBrowser is correct')
-              assert.equal(token.uaBrowserVersion, sessionTokenData.uaBrowserVersion, 'uaBrowserVersion is correct')
-              assert.equal(token.uaOS, sessionTokenData.uaOS, 'uaOS is correct')
-              assert.equal(token.uaOSVersion, sessionTokenData.uaOSVersion, 'uaOSVersion is correct')
-              assert.equal(token.uaDeviceType, sessionTokenData.uaDeviceType, 'uaDeviceType is correct')
-              assert.equal(token.uaFormFactor, sessionTokenData.uaFormFactor, 'uaFormFactor is correct')
-              assert.equal(token.lastAccessTime, sessionTokenData.createdAt, 'lastAccessTime was set')
-              assert.equal(!! token.emailVerified, accountData.emailVerified, 'token emailVerified is same as account emailVerified')
-              assert.equal(token.email, accountData.email, 'token email same as account email')
-              assert.deepEqual(token.emailCode, accountData.emailCode, 'token emailCode same as account emailCode')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
-              assert.equal(token.accountCreatedAt, accountData.createdAt, 'accountCreatedAt is correct')
-              assert.equal(!! token.mustVerify, !! sessionTokenData.mustVerify, 'mustVerify is correct')
-              assert.deepEqual(token.tokenVerificationId, sessionTokenData.tokenVerificationId, 'tokenVerificationId is correct')
+      it('should fail session verification for invalid uid', () => {
+        return db.verifyTokens(sessionTokenData.tokenVerificationId, {uid: hex16()})
+          .then(assert.fail, (err) => {
+            assert.equal(err.errno, 116, 'err.errno is correct')
+            assert.equal(err.code, 404, 'err.code is correct')
 
-            })
-        })
+            return db.sessionTokenWithVerificationStatus(sessionTokenData.tokenId)
+          })
+          .then((token) => {
+            assert.equal(!! token.mustVerify, !! sessionTokenData.mustVerify, 'mustVerify is correct')
+            assert.deepEqual(token.tokenVerificationId, sessionTokenData.tokenVerificationId, 'tokenVerificationId is correct')
+          })
       })
 
-      describe('db.verifyTokens', () => {
-        it('should fail for invalid tokenId', () => {
-          return db.verifyTokens(hex16(), accountData)
-            .then(assert.fail, (err) => {
-              assert.equal(err.errno, 116, 'err.errno is correct')
-              assert.equal(err.code, 404, 'err.code is correct')
-
-              return db.sessionTokenWithVerificationStatus(sessionTokenData.tokenId)
-            })
-            .then((token) => {
-              assert.equal(!! token.mustVerify, !! sessionTokenData.mustVerify, 'mustVerify is correct')
-              assert.deepEqual(token.tokenVerificationId, sessionTokenData.tokenVerificationId, 'tokenVerificationId is correct')
-            })
-        })
-
-        it('should fail for invalid uid', () => {
-          return db.verifyTokens(sessionTokenData.tokenVerificationId, {uid: hex16()})
-            .then(assert.fail, (err) => {
-              assert.equal(err.errno, 116, 'err.errno is correct')
-              assert.equal(err.code, 404, 'err.code is correct')
-
-              return db.sessionTokenWithVerificationStatus(sessionTokenData.tokenId)
-            })
-            .then((token) => {
-              assert.equal(!! token.mustVerify, !! sessionTokenData.mustVerify, 'mustVerify is correct')
-              assert.deepEqual(token.tokenVerificationId, sessionTokenData.tokenVerificationId, 'tokenVerificationId is correct')
-            })
-        })
-
-        it('should verify token', () => {
-          return db.verifyTokens(sessionTokenData.tokenVerificationId, accountData)
-            .then(() => {
-              return db.sessionTokenWithVerificationStatus(sessionTokenData.tokenId)
-            }, assert.fail)
-            .then((token) => {
-              assert.equal(token.mustVerify, null, 'mustVerify is null')
-              assert.equal(token.tokenVerificationId, null, 'tokenVerificationId is null')
-            })
-        })
+      it('should verify session token', () => {
+        return db.verifyTokens(sessionTokenData.tokenVerificationId, accountData)
+          .then(() => {
+            return db.sessionTokenWithVerificationStatus(sessionTokenData.tokenId)
+          }, assert.fail)
+          .then((token) => {
+            assert.equal(token.mustVerify, null, 'mustVerify is null')
+            assert.equal(token.tokenVerificationId, null, 'tokenVerificationId is null')
+          })
       })
 
       describe('db.accountDevices', () => {
@@ -519,107 +493,99 @@ module.exports = function (config, DB) {
         return db.createKeyFetchToken(keyFetchTokenData.tokenId, keyFetchTokenData)
       })
 
-      describe('db.createKeyFetchToken', () => {
-        it('should have created unverified key fetch token', () => {
-          keyFetchTokenData = makeMockKeyFetchToken(accountData.uid, false)
-          return db.createKeyFetchToken(keyFetchTokenData.tokenId, keyFetchTokenData)
-            .then((result) => {
-              assert.deepEqual(result, {}, 'Returned an empty object on key fetch token creation')
-              return db.keyFetchToken(keyFetchTokenData.tokenId)
-            })
-            .then((token) => {
-              assert.equal(token.tokenId, undefined, 'tokenId is not returned')
-              assert.deepEqual(token.authKey, keyFetchTokenData.authKey, 'authKey matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, keyFetchTokenData.createdAt, 'createdAt is ok')
-              assert.equal(!! token.emailVerified, accountData.emailVerified, 'emailVerified is correct')
-              assert.equal(token.email, undefined, 'tokenId is not returned')
-              assert.equal(token.emailCode, undefined, 'tokenId is not returned')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
-              assert.equal(token.tokenVerificationId, undefined, 'tokenVerificationId is undefined')
-            })
-        })
-
-        it('should have created verified key fetch token', () => {
-          keyFetchTokenData = makeMockKeyFetchToken(accountData.uid, true)
-          return db.createKeyFetchToken(keyFetchTokenData.tokenId, keyFetchTokenData)
-            .then((result) => {
-              assert.deepEqual(result, {}, 'Returned an empty object on key fetch token creation')
-              return db.keyFetchTokenWithVerificationStatus(keyFetchTokenData.tokenId)
-            })
-            .then((token) => {
-              assert.equal(token.tokenId, undefined, 'tokenId is not returned')
-              assert.deepEqual(token.authKey, keyFetchTokenData.authKey, 'authKey matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, keyFetchTokenData.createdAt, 'createdAt is ok')
-              assert.equal(!! token.emailVerified, accountData.emailVerified, 'emailVerified is correct')
-              assert.equal(token.email, undefined, 'tokenId is not returned')
-              assert.equal(token.emailCode, undefined, 'tokenId is not returned')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
-              assert.equal(token.tokenVerificationId, keyFetchTokenData.tokenVerificationId, 'tokenVerificationId is undefined')
-            })
-        })
+      it('should have created unverified keyfetch token', () => {
+        keyFetchTokenData = makeMockKeyFetchToken(accountData.uid, false)
+        return db.createKeyFetchToken(keyFetchTokenData.tokenId, keyFetchTokenData)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'Returned an empty object on key fetch token creation')
+            return db.keyFetchToken(keyFetchTokenData.tokenId)
+          })
+          .then((token) => {
+            assert.equal(token.tokenId, undefined, 'tokenId is not returned')
+            assert.deepEqual(token.authKey, keyFetchTokenData.authKey, 'authKey matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, keyFetchTokenData.createdAt, 'createdAt is ok')
+            assert.equal(!! token.emailVerified, accountData.emailVerified, 'emailVerified is correct')
+            assert.equal(token.email, undefined, 'tokenId is not returned')
+            assert.equal(token.emailCode, undefined, 'tokenId is not returned')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
+            assert.equal(token.tokenVerificationId, undefined, 'tokenVerificationId is undefined')
+          })
       })
 
-      describe('db.keyFetchTokenWithVerificationStatus', () => {
-        it('should get verification status', () => {
-          return db.keyFetchTokenWithVerificationStatus(keyFetchTokenData.tokenId)
-            .then((token) => {
-              assert.deepEqual(token.authKey, keyFetchTokenData.authKey, 'authKey matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, keyFetchTokenData.createdAt, 'createdAt is ok')
-              assert.equal(!! token.emailVerified, accountData.emailVerified, 'emailVerified is correct')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
-              assert.deepEqual(token.tokenVerificationId, keyFetchTokenData.tokenVerificationId, 'tokenVerificationId is correct')
-
-            })
-        })
+      it('should have created verified key fetch token', () => {
+        keyFetchTokenData = makeMockKeyFetchToken(accountData.uid, true)
+        return db.createKeyFetchToken(keyFetchTokenData.tokenId, keyFetchTokenData)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'Returned an empty object on key fetch token creation')
+            return db.keyFetchTokenWithVerificationStatus(keyFetchTokenData.tokenId)
+          })
+          .then((token) => {
+            assert.equal(token.tokenId, undefined, 'tokenId is not returned')
+            assert.deepEqual(token.authKey, keyFetchTokenData.authKey, 'authKey matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, keyFetchTokenData.createdAt, 'createdAt is ok')
+            assert.equal(!! token.emailVerified, accountData.emailVerified, 'emailVerified is correct')
+            assert.equal(token.email, undefined, 'tokenId is not returned')
+            assert.equal(token.emailCode, undefined, 'tokenId is not returned')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
+            assert.equal(token.tokenVerificationId, keyFetchTokenData.tokenVerificationId, 'tokenVerificationId is undefined')
+          })
       })
 
-      describe('db.verifyTokens', () => {
-        it('fails for invalid tokenVerficationId', () => {
-          return db.verifyTokens(hex16(), accountData)
-            .then(assert.fail, (err) => {
-              assert.equal(err.errno, 116, 'err.errno is correct')
-              assert.equal(err.code, 404, 'err.code is correct')
-            })
-        })
+      it('should get keyfetch token verification status', () => {
+        return db.keyFetchTokenWithVerificationStatus(keyFetchTokenData.tokenId)
+          .then((token) => {
+            assert.deepEqual(token.authKey, keyFetchTokenData.authKey, 'authKey matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, keyFetchTokenData.createdAt, 'createdAt is ok')
+            assert.equal(!! token.emailVerified, accountData.emailVerified, 'emailVerified is correct')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is correct')
+            assert.deepEqual(token.tokenVerificationId, keyFetchTokenData.tokenVerificationId, 'tokenVerificationId is correct')
 
-        it('fails for invalid uid', () => {
-          return db.verifyTokens(keyFetchTokenData.tokenVerificationId, {uid: hex16()})
-            .then(assert.fail, (err) => {
-              assert.equal(err.errno, 116, 'err.errno is correct')
-              assert.equal(err.code, 404, 'err.code is correct')
-            })
-        })
-
-        it('should verify token', () => {
-          return db.keyFetchTokenWithVerificationStatus(keyFetchTokenData.tokenId)
-            .then((token) => {
-              assert.deepEqual(token.tokenVerificationId, keyFetchTokenData.tokenVerificationId, 'tokenVerificationId is correct')
-              return db.verifyTokens(keyFetchTokenData.tokenVerificationId, accountData)
-            })
-            .then(() => {
-              return db.keyFetchTokenWithVerificationStatus(keyFetchTokenData.tokenId)
-            })
-            .then((token) => {
-              assert.equal(token.tokenVerificationId, null, 'tokenVerificationId is null')
-            })
-        })
+          })
       })
 
-      describe('db.deleteKeyFetchToken', () => {
-        it('should delete key fetch token', () => {
-          return db.deleteKeyFetchToken(keyFetchTokenData.tokenId)
-            .then((result) => {
-              assert.deepEqual(result, {}, 'Returned an empty object on token delete')
-              return db.keyFetchToken(keyFetchTokenData.tokenVerificationId)
-                .then(assert.fail, (err) => {
-                  assert.equal(err.errno, 116, 'err.errno is correct')
-                  assert.equal(err.code, 404, 'err.code is correct')
-                })
-            })
-        })
+      it('should fail keyfetch token verficiation for invalid tokenVerficationId', () => {
+        return db.verifyTokens(hex16(), accountData)
+          .then(assert.fail, (err) => {
+            assert.equal(err.errno, 116, 'err.errno is correct')
+            assert.equal(err.code, 404, 'err.code is correct')
+          })
+      })
+
+      it('should fail keyfetch token verficiation for invalid uid', () => {
+        return db.verifyTokens(keyFetchTokenData.tokenVerificationId, {uid: hex16()})
+          .then(assert.fail, (err) => {
+            assert.equal(err.errno, 116, 'err.errno is correct')
+            assert.equal(err.code, 404, 'err.code is correct')
+          })
+      })
+
+      it('should verify keyfetch token', () => {
+        return db.keyFetchTokenWithVerificationStatus(keyFetchTokenData.tokenId)
+          .then((token) => {
+            assert.deepEqual(token.tokenVerificationId, keyFetchTokenData.tokenVerificationId, 'tokenVerificationId is correct')
+            return db.verifyTokens(keyFetchTokenData.tokenVerificationId, accountData)
+          })
+          .then(() => {
+            return db.keyFetchTokenWithVerificationStatus(keyFetchTokenData.tokenId)
+          })
+          .then((token) => {
+            assert.equal(token.tokenVerificationId, null, 'tokenVerificationId is null')
+          })
+      })
+
+      it('should delete key fetch token', () => {
+        return db.deleteKeyFetchToken(keyFetchTokenData.tokenId)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'Returned an empty object on token delete')
+            return db.keyFetchToken(keyFetchTokenData.tokenVerificationId)
+              .then(assert.fail, (err) => {
+                assert.equal(err.errno, 116, 'err.errno is correct')
+                assert.equal(err.code, 404, 'err.code is correct')
+              })
+          })
       })
     })
 
@@ -630,145 +596,130 @@ module.exports = function (config, DB) {
         return db.createPasswordForgotToken(forgotPasswordTokenData.tokenId, forgotPasswordTokenData)
       })
 
-      describe('db.createPasswordForgotToken creates with correct data', () => {
-        it('should have created password forgot token', () => {
-          return db.passwordForgotToken(forgotPasswordTokenData.tokenId)
-            .then((token) => {
-              assert.deepEqual(token.tokenData, forgotPasswordTokenData.data, 'token data matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, forgotPasswordTokenData.createdAt, 'createdAt same')
-              assert.deepEqual(token.passCode, forgotPasswordTokenData.passCode, 'token passCode same')
-              assert.equal(token.tries, forgotPasswordTokenData.tries, 'Tries is correct')
-              assert.equal(token.email, accountData.email, 'token email same as account email')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is set correctly')
-            })
-        })
+      it('should have created password forgot token', () => {
+        return db.passwordForgotToken(forgotPasswordTokenData.tokenId)
+          .then((token) => {
+            assert.deepEqual(token.tokenData, forgotPasswordTokenData.data, 'token data matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, forgotPasswordTokenData.createdAt, 'createdAt same')
+            assert.deepEqual(token.passCode, forgotPasswordTokenData.passCode, 'token passCode same')
+            assert.equal(token.tries, forgotPasswordTokenData.tries, 'Tries is correct')
+            assert.equal(token.email, accountData.email, 'token email same as account email')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is set correctly')
+          })
       })
 
-      describe('db.updatePasswordForgotToken updates token', () => {
-        it('should update token tries', () => {
-          forgotPasswordTokenData.tries = 9
-          return db.updatePasswordForgotToken(forgotPasswordTokenData.tokenId, forgotPasswordTokenData)
-            .then((result) => {
-              assert.deepEqual(result, {}, 'The returned object from the token update is empty')
-              return db.passwordForgotToken(forgotPasswordTokenData.tokenId)
-            })
-            .then((token) => {
-              assert.equal(token.tries, 9, 'token now has had 9 tries')
-            })
-        })
+
+      it('should update password forgot token tries', () => {
+        forgotPasswordTokenData.tries = 9
+        return db.updatePasswordForgotToken(forgotPasswordTokenData.tokenId, forgotPasswordTokenData)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'The returned object from the token update is empty')
+            return db.passwordForgotToken(forgotPasswordTokenData.tokenId)
+          })
+          .then((token) => {
+            assert.equal(token.tries, 9, 'token now has had 9 tries')
+          })
       })
 
-      describe('db.deletePasswordForgotToken', () => {
-        it('should delete token', () => {
-          return db.deletePasswordForgotToken(forgotPasswordTokenData.tokenId)
-            .then((result) => {
-              assert.deepEqual(result, {}, 'The returned object from the token delete is empty')
-              return db.passwordForgotToken(forgotPasswordTokenData.tokenId)
-                .then(assert.fail, (err) => {
-                  assert.equal(err.errno, 116, 'err.errno is correct')
-                  assert.equal(err.code, 404, 'err.code is correct')
-                })
-            })
-        })
+      it('should delete password forgot token', () => {
+        return db.deletePasswordForgotToken(forgotPasswordTokenData.tokenId)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'The returned object from the token delete is empty')
+            return db.passwordForgotToken(forgotPasswordTokenData.tokenId)
+              .then(assert.fail, (err) => {
+                assert.equal(err.errno, 116, 'err.errno is correct')
+                assert.equal(err.code, 404, 'err.code is correct')
+              })
+          })
       })
     })
 
     describe('change password token handling', () => {
       let changePasswordTokenData
       beforeEach(() => {
-        accountData = createAccount()
         changePasswordTokenData = makeMockChangePasswordToken(accountData.uid)
 
-        return db.createAccount(accountData.uid, accountData)
-          .then(() => db.createPasswordChangeToken(changePasswordTokenData.tokenId, changePasswordTokenData))
+        return db.createPasswordChangeToken(changePasswordTokenData.tokenId, changePasswordTokenData)
       })
 
-      describe('db.createPasswordChangeToken', () => {
-        it('should have created token', () => {
-          return db.passwordChangeToken(changePasswordTokenData.tokenId)
-            .then((token) => {
-              // tokenId is not returned
-              assert.deepEqual(token.tokenData, changePasswordTokenData.data, 'token data matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, changePasswordTokenData.createdAt, 'createdAt is correct')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is set correctly')
-            })
-        })
-
-        it('should override change password token when creating with same uid', () => {
-          const anotherChangePasswordTokenData = makeMockChangePasswordToken(accountData.uid)
-          return db.createPasswordChangeToken(anotherChangePasswordTokenData.tokenId, anotherChangePasswordTokenData)
-            .then((result) => {
-              assert.deepEqual(result, {}, 'Returned an empty object on change password token creation')
-
-              // Fails to retrieve original change token since it was over written
-              return db.passwordChangeToken(changePasswordTokenData.tokenId)
-                .then(assert.fail, (err) => {
-                  assert.equal(err.errno, 116, 'err.errno is correct')
-                  assert.equal(err.code, 404, 'err.code is correct')
-                  return db.passwordChangeToken(anotherChangePasswordTokenData.tokenId)
-                })
-            })
-            .then((token) => {
-              assert.deepEqual(token.tokenData, anotherChangePasswordTokenData.data, 'token data matches')
-              assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
-              assert.equal(token.createdAt, anotherChangePasswordTokenData.createdAt, 'createdAt is correct')
-              assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is set correctly')
-            })
-        })
-      })
-
-      describe('db.deletePasswordChangeToken', () => {
-        it('should have deleted token', () => {
-          return db.deletePasswordChangeToken(changePasswordTokenData.tokenId, changePasswordTokenData)
-            .then((result) => {
-              assert.deepEqual(result, {}, 'Returned an empty object on forgot password change deletion')
-              return db.passwordChangeToken(changePasswordTokenData.tokenId)
-                .then(assert.fail, (err) => {
-                  assert.equal(err.errno, 116, 'err.errno is correct')
-                  assert.equal(err.code, 404, 'err.code is correct')
-                })
-            })
-        })
-      })
-    })
-
-    describe('db.verifyEmail - legacy', () => {
-      it('should verify account email', () => {
-        return db.emailRecord(accountData.emailBuffer)
-          .then((emailRecord) => {
-            assert.equal(emailRecord.emailVerified, false, 'account should be emailVerified false')
-            assert.equal(emailRecord.emailVerified, 0, 'account should be emailVerified (0)')
-            return db.verifyEmail(emailRecord.uid, emailRecord.emailCode)
+      it('should have created password change token', () => {
+        return db.passwordChangeToken(changePasswordTokenData.tokenId)
+          .then((token) => {
+            assert.equal(token.hasOwnProperty('tokenId'), false, 'tokenId is not returned')
+            assert.deepEqual(token.tokenData, changePasswordTokenData.data, 'token data matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, changePasswordTokenData.createdAt, 'createdAt is correct')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is set correctly')
           })
-          .then(function(result) {
-            assert.deepEqual(result, {}, 'Returned an empty object email verification')
-            return db.account(accountData.uid)
+      })
+
+      it('should override change password token when creating with same uid', () => {
+        const anotherChangePasswordTokenData = makeMockChangePasswordToken(accountData.uid)
+        return db.createPasswordChangeToken(anotherChangePasswordTokenData.tokenId, anotherChangePasswordTokenData)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'Returned an empty object on change password token creation')
+
+            // Fails to retrieve original change token since it was over written
+            return db.passwordChangeToken(changePasswordTokenData.tokenId)
+              .then(assert.fail, (err) => {
+                assert.equal(err.errno, 116, 'err.errno is correct')
+                assert.equal(err.code, 404, 'err.code is correct')
+                return db.passwordChangeToken(anotherChangePasswordTokenData.tokenId)
+              })
           })
-          .then(function(account) {
-            assert(account.emailVerified, 'account should now be emailVerified (truthy)')
-            assert.equal(account.emailVerified, 1, 'account should now be emailVerified (1)')
+          .then((token) => {
+            assert.deepEqual(token.tokenData, anotherChangePasswordTokenData.data, 'token data matches')
+            assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
+            assert.equal(token.createdAt, anotherChangePasswordTokenData.createdAt, 'createdAt is correct')
+            assert.equal(token.verifierSetAt, accountData.verifierSetAt, 'verifierSetAt is set correctly')
+          })
+      })
+
+      it('should have deleted token', () => {
+        return db.deletePasswordChangeToken(changePasswordTokenData.tokenId, changePasswordTokenData)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'Returned an empty object on forgot password change deletion')
+            return db.passwordChangeToken(changePasswordTokenData.tokenId)
+              .then(assert.fail, (err) => {
+                assert.equal(err.errno, 116, 'err.errno is correct')
+                assert.equal(err.code, 404, 'err.code is correct')
+              })
           })
       })
     })
 
-    describe('db.updateLocale', () => {
-      it('should change account locale', () => {
-        return db.account(accountData.uid)
-          .then((account) => {
-            assert.equal(account.locale, 'en_US', 'correct locale set')
-            accountData.locale = 'en_NZ'
-            return db.updateLocale(accountData.uid, accountData)
-          })
-          .then(function (result) {
-            assert.deepEqual(result, {}, 'Returned an empty object on locale update')
-            return db.account(accountData.uid)
-          })
-          .then(function (account) {
-            assert.equal(account.locale, 'en_NZ', 'account should now have new locale')
-          })
-      })
+    it('should verify account email with legacy db.verifyEmail', () => {
+      return db.emailRecord(accountData.emailBuffer)
+        .then((emailRecord) => {
+          assert.equal(emailRecord.emailVerified, false, 'account should be emailVerified false')
+          assert.equal(emailRecord.emailVerified, 0, 'account should be emailVerified (0)')
+          return db.verifyEmail(emailRecord.uid, emailRecord.emailCode)
+        })
+        .then(function (result) {
+          assert.deepEqual(result, {}, 'Returned an empty object email verification')
+          return db.account(accountData.uid)
+        })
+        .then(function (account) {
+          assert(account.emailVerified, 'account should now be emailVerified (truthy)')
+          assert.equal(account.emailVerified, 1, 'account should now be emailVerified (1)')
+        })
+    })
+
+    it('should change account locale', () => {
+      return db.account(accountData.uid)
+        .then((account) => {
+          assert.equal(account.locale, 'en_US', 'correct locale set')
+          accountData.locale = 'en_NZ'
+          return db.updateLocale(accountData.uid, accountData)
+        })
+        .then(function (result) {
+          assert.deepEqual(result, {}, 'Returned an empty object on locale update')
+          return db.account(accountData.uid)
+        })
+        .then(function (account) {
+          assert.equal(account.locale, 'en_NZ', 'account should now have new locale')
+        })
     })
 
     describe('account reset token handling', () => {
@@ -785,7 +736,7 @@ module.exports = function (config, DB) {
       it('db.accountResetToken should create token', () => {
         return db.accountResetToken(accountResetTokenData.tokenId)
           .then((token) => {
-            // tokenId is not returned
+            assert.equal(token.hasOwnProperty('tokenId'), false, 'tokenId is not returned')
             assert.deepEqual(token.uid, accountData.uid, 'token belongs to this account')
             assert.deepEqual(token.tokenData, accountResetTokenData.data, 'token data matches')
             assert.equal(token.createdAt, accountResetTokenData.createdAt, 'createdAt is correct')
@@ -811,7 +762,6 @@ module.exports = function (config, DB) {
       beforeEach(() => {
         forgotPasswordTokenData = makeMockForgotPasswordToken(accountData.uid)
         accountResetTokenData = makeMockAccountResetToken(accountData.uid, forgotPasswordTokenData.tokenId)
-
         anotherForgotPasswordTokenData = makeMockForgotPasswordToken(accountData.uid)
         anotherAccountResetTokenData = makeMockAccountResetToken(accountData.uid, anotherForgotPasswordTokenData.tokenId)
 
@@ -830,8 +780,8 @@ module.exports = function (config, DB) {
 
             return db.createPasswordForgotToken(forgotPasswordTokenData.tokenId, forgotPasswordTokenData)
           })
-          .then(() =>  db.forgotPasswordVerified(forgotPasswordTokenData.tokenId, forgotPasswordTokenData), assert.fail)
-          .then(() =>  db.accountResetToken(anotherAccountResetTokenData.tokenId))
+          .then(() => db.forgotPasswordVerified(forgotPasswordTokenData.tokenId, forgotPasswordTokenData), assert.fail)
+          .then(() => db.accountResetToken(anotherAccountResetTokenData.tokenId))
           .then(assert.fail, (err) => {
             // throw away accountResetToken (shouldn't exist any longer)
             assert.equal(err.errno, 116, 'err.errno is correct')
@@ -897,12 +847,10 @@ module.exports = function (config, DB) {
     describe('db.accountDevices', () => {
       let deviceInfo, sessionTokenData
       beforeEach(() => {
-        accountData = createAccount()
         sessionTokenData = makeMockSessionToken(accountData.uid)
         deviceInfo = makeMockDevice(sessionTokenData.tokenId)
 
-        return db.createAccount(accountData.uid, accountData)
-          .then(() => db.createSessionToken(sessionTokenData.tokenId, sessionTokenData))
+        return db.createSessionToken(sessionTokenData.tokenId, sessionTokenData)
           .then(() => db.createDevice(accountData.uid, deviceInfo.deviceId, deviceInfo))
           .then((result) => assert.deepEqual(result, {}, 'returned empty object'))
       })
@@ -1028,13 +976,11 @@ module.exports = function (config, DB) {
     describe('db.resetAccount', () => {
       let passwordForgotTokenData, sessionTokenData, deviceInfo
       beforeEach(() => {
-        accountData = createAccount()
         sessionTokenData = makeMockSessionToken(accountData.uid, true)
         passwordForgotTokenData = makeMockForgotPasswordToken(accountData.uid)
         deviceInfo = makeMockDevice(sessionTokenData.tokenId)
 
-        return db.createAccount(accountData.uid, accountData)
-          .then(() => db.createSessionToken(sessionTokenData.tokenId, sessionTokenData))
+        return db.createSessionToken(sessionTokenData.tokenId, sessionTokenData)
           .then(() => db.createDevice(accountData.uid, deviceInfo.deviceId, deviceInfo))
           .then(() => db.createPasswordForgotToken(passwordForgotTokenData.tokenId, passwordForgotTokenData))
       })
@@ -1096,7 +1042,7 @@ module.exports = function (config, DB) {
       const evA = 'account.login', evB = 'account.create', evC = 'account.reset'
       const addr1 = '127.0.0.1', addr2 = '::127.0.0.2'
 
-      function insert (uid, addr, name, session) {
+      function insert(uid, addr, name, session) {
         return db.createSecurityEvent({
           uid: uid,
           ipAddr: addr,
@@ -1106,7 +1052,6 @@ module.exports = function (config, DB) {
       }
 
       beforeEach(() => {
-        accountData = createAccount()
         session1 = makeMockSessionToken(accountData.uid)
         session2 = makeMockSessionToken(accountData.uid)
         // Make session verified
@@ -1117,12 +1062,11 @@ module.exports = function (config, DB) {
         uid1 = accountData.uid
         uid2 = newUuid()
 
-        return db.createAccount(accountData.uid, accountData)
-          .then(() => P.all([
-            db.createSessionToken(session1.tokenId, session1),
-            db.createSessionToken(session2.tokenId, session2),
-            db.createSessionToken(session3.tokenId, session3)
-          ]))
+        return P.all([
+          db.createSessionToken(session1.tokenId, session1),
+          db.createSessionToken(session2.tokenId, session2),
+          db.createSessionToken(session3.tokenId, session3)
+        ])
         // Don't paralleize these, the order of them matters
         // because they record timestamps in the db.
           .then(() => insert(uid1, addr1, evA, session2.tokenId).delay(10))
@@ -1193,11 +1137,9 @@ module.exports = function (config, DB) {
     describe('db.deleteAccount', () => {
       let sessionTokenData
       beforeEach(() => {
-        accountData = createAccount()
         sessionTokenData = makeMockSessionToken(accountData.uid)
 
-        return db.createAccount(accountData.uid, accountData)
-          .then(() => db.createSessionToken(sessionTokenData.tokenId, sessionTokenData))
+        return db.createSessionToken(sessionTokenData.tokenId, sessionTokenData)
           .then(() => db.accountExists(accountData.emailBuffer))
           .then((exists) => {
             assert.ok(exists, 'account exists')
@@ -1233,12 +1175,8 @@ module.exports = function (config, DB) {
     describe('reminders', () => {
       let accountData2, fetchQuery
       beforeEach(() => {
-        accountData = createAccount()
         accountData2 = createAccount()
-        return P.all([
-          db.createAccount(accountData.uid, accountData),
-          db.createAccount(accountData2.uid, accountData2)
-        ])
+        return db.createAccount(accountData2.uid, accountData2)
       })
 
       it('create and delete', () => {
@@ -1543,20 +1481,17 @@ module.exports = function (config, DB) {
     describe('sign-in codes', () => {
       let SIGNIN_CODES, NOW, TIMESTAMPS, FLOW_IDS
 
-
       beforeEach(() => {
-        accountData = createAccount()
-        SIGNIN_CODES = [ hex6(), hex6(), hex6() ]
+        SIGNIN_CODES = [hex6(), hex6(), hex6()]
         NOW = Date.now()
-        TIMESTAMPS = [ NOW - 1, NOW - 2, NOW - config.signinCodesMaxAge - 1 ]
-        FLOW_IDS = [ hex32(), hex32(), hex32() ]
+        TIMESTAMPS = [NOW - 1, NOW - 2, NOW - config.signinCodesMaxAge - 1]
+        FLOW_IDS = [hex32(), hex32(), hex32()]
 
-        return db.createAccount(accountData.uid, accountData)
-          .then(() => P.all([
-            db.createSigninCode(SIGNIN_CODES[0], accountData.uid, TIMESTAMPS[0], FLOW_IDS[0]),
-            db.createSigninCode(SIGNIN_CODES[1], accountData.uid, TIMESTAMPS[1], FLOW_IDS[1]),
-            db.createSigninCode(SIGNIN_CODES[2], accountData.uid, TIMESTAMPS[2], FLOW_IDS[2])
-          ]))
+        return P.all([
+          db.createSigninCode(SIGNIN_CODES[0], accountData.uid, TIMESTAMPS[0], FLOW_IDS[0]),
+          db.createSigninCode(SIGNIN_CODES[1], accountData.uid, TIMESTAMPS[1], FLOW_IDS[1]),
+          db.createSigninCode(SIGNIN_CODES[2], accountData.uid, TIMESTAMPS[2], FLOW_IDS[2])
+        ])
           .then((results) => {
             results.forEach(r => assert.deepEqual(r, {}, 'createSigninCode should return an empty object'))
           })
@@ -1613,45 +1548,36 @@ module.exports = function (config, DB) {
       })
     })
 
-    describe('account email and emails table syncing', () => {
-      beforeEach(() => {
-        accountData = createAccount()
-        return db.createAccount(accountData.uid, accountData)
-      })
 
-      it('should keep emails in sync', () => {
-        return P.all([db.accountEmails(accountData.uid), db.account(accountData.uid)])
-          .spread(function (emails, account) {
-            assert.equal(emails[0].email, account.email, 'correct email returned')
-            assert.equal(!! emails[0].isVerified, !! account.emailVerified, 'correct email verification')
-            assert.equal(!! emails[0].isPrimary, true, 'correct email primary')
+    it('should keep account emails and emails in sync', () => {
+      return P.all([db.accountEmails(accountData.uid), db.account(accountData.uid)])
+        .spread(function (emails, account) {
+          assert.equal(emails[0].email, account.email, 'correct email returned')
+          assert.equal(!! emails[0].isVerified, !! account.emailVerified, 'correct email verification')
+          assert.equal(!! emails[0].isPrimary, true, 'correct email primary')
 
-            // Verify account email
-            return db.verifyEmail(account.uid, account.emailCode)
-          })
-          .then(function (result) {
-            assert.deepEqual(result, {}, 'returned empty response on verify email')
-            return P.all([db.accountEmails(accountData.uid), db.account(accountData.uid)])
-          })
-          .spread(function (emails, account) {
-            assert.equal(emails[0].email, account.email, 'correct email returned')
-            assert.equal(!! emails[0].isVerified, !! account.emailVerified, 'correct email verification')
-            assert.equal(!! emails[0].isPrimary, true, 'correct email primary')
-          })
-      })
+          // Verify account email
+          return db.verifyEmail(account.uid, account.emailCode)
+        })
+        .then(function (result) {
+          assert.deepEqual(result, {}, 'returned empty response on verify email')
+          return P.all([db.accountEmails(accountData.uid), db.account(accountData.uid)])
+        })
+        .spread(function (emails, account) {
+          assert.equal(emails[0].email, account.email, 'correct email returned')
+          assert.equal(!! emails[0].isVerified, !! account.emailVerified, 'correct email verification')
+          assert.equal(!! emails[0].isPrimary, true, 'correct email primary')
+        })
     })
 
     describe('db.resetAccountTokens', () => {
       let passwordChangeToken, passwordForgotToken, accountResetToken
 
-      before(() => {
-        accountData = createAccount()
+      beforeEach(() => {
         accountData.emailVerified = true
         passwordChangeToken = makeMockChangePasswordToken(accountData.uid)
         passwordForgotToken = makeMockForgotPasswordToken(accountData.uid)
         accountResetToken = makeMockAccountResetToken(accountData.uid, passwordForgotToken.tokenId)
-
-        return db.createAccount(accountData.uid, accountData)
       })
 
       it('should remove account reset tokens', () => {
