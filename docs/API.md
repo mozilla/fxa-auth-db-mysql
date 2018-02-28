@@ -1745,7 +1745,6 @@ Content-Length: 2
     * Body : {"code":"InternalError","message":"...<message related to the error>..."}
 ```
 
-
 ## verifyTokens : `POST /tokens/<tokenId>/verifyWithMethod`
 
 This method verifies sessionTokens, keyFetchTokens and sets
