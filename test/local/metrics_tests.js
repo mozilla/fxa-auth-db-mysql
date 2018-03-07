@@ -215,7 +215,6 @@ describe('DB metrics', () => {
       }
 
       var metrics = proxyquire('../../bin/metrics', mocks)
-    
       return metrics.run({
         General: {
           db_dnsname: 'foo',
