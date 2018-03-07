@@ -15,6 +15,9 @@ const zeroBuffer16 = Buffer.from('00000000000000000000000000000000', 'hex')
 const zeroBuffer32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
 const now = Date.now()
 
+var constants = require('../../lib/constants')
+config.master.database = constants.DB_NAME
+
 describe('MySQL', () => {
 
   let db
