@@ -110,7 +110,7 @@ function createServer(db) {
   )
   api.post('/email/:email/account/:id',
     op(function (req) {
-      return db.setPrimaryEmail(req.params.id, Buffer(req.params.email, 'hex'))
+      return db.setPrimaryEmail(req.params.id, req.params.email)
     })
   )
 
