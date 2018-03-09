@@ -228,18 +228,19 @@ describe('DB metrics', () => {
         assert.equal(connect.callCount, 1, 'mysql.connect was called once')
         assert.equal(connect.getCall(0).args.length, 1, 'mysql.connect was passed one argument')
         var options = connect.getCall(0).args[0]
-
         assert.equal(Object.keys(options).length, 3, 'mysql.connect options had correct number of properties')
         assert.equal(typeof options.master, 'object', 'mysql.connect master option was object')
         assert.equal(Object.keys(options.master).length, 4, 'mysql.connect master option had correct number of properties')
         assert.equal(options.master.host, 'foo', 'mysql.connect master.host option was correct')
         assert.equal(options.master.user, 'bar', 'mysql.connect master.user option was correct')
         assert.equal(options.master.password, 'baz', 'mysql.connect master.password option was correct')
+        assert.equal(options.master.database, 'fxa', 'mysql.connect master.database option was correct')
         assert.equal(typeof options.slave, 'object', 'mysql.connect slave option was object')
         assert.equal(Object.keys(options.slave).length, 4, 'mysql.connect slave option had correct number of properties')
         assert.equal(options.slave.host, 'foo', 'mysql.connect slave.host option was correct')
         assert.equal(options.slave.user, 'bar', 'mysql.connect slave.user option was correct')
         assert.equal(options.slave.password, 'baz', 'mysql.connect slave.password option was correct')
+        assert.equal(options.slave.database, 'fxa', 'mysql.connect slave.database option was correct')
         assert.equal(options.patchKey, 'schema-patch-level', 'mysql.connect patchKey option was correct')
 
         assert.equal(readMultiple.callCount, 1, 'readMultiple was called once')

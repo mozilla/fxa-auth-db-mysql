@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const assert = require('insist')
-var constants = require('../../lib/constants')
+const constants = require('../../lib/constants')
 describe('constants', () => {
   it(
     'constants exports DATABASE_NAME fxa',

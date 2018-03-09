@@ -9,7 +9,7 @@ var logger = require('../lib/logging')('bin.db_patcher')
 var patcher = require('mysql-patcher')
 
 var patch = require('../lib/db/patch')
-var constants = require('../lib/constants')
+const constants = require('../lib/constants')
 
 // set some options
 var options = Object.assign({}, config.master)
