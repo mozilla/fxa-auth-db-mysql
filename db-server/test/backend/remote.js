@@ -912,10 +912,13 @@ module.exports = function(cfg, makeServer) {
         return client.putThen('/account/' + user.accountId, user.account)
           .then(function() {
             return client.getThen('/accountResetToken/' + user.accountResetTokenId)
+            .then(function() {
+              assert(false, 'A non-existant session token should not have returned anything')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'A non-existant session token should not have returned anything')
-          }, function(err) {
+          .then(function() {
             return client.putThen('/passwordForgotToken/' + user.passwordForgotTokenId, user.passwordForgotToken)
           })
           .then(function(r) {
@@ -965,10 +968,13 @@ module.exports = function(cfg, makeServer) {
         return client.putThen('/account/' + user.accountId, user.account)
           .then(function() {
             return client.getThen('/passwordChangeToken/' + user.passwordChangeTokenId)
+            .then(function() {
+              assert(false, 'A non-existant session token should not have returned anything')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
           .then(function(r) {
-            assert(false, 'A non-existant session token should not have returned anything')
-          }, function(err) {
             return client.putThen('/passwordChangeToken/' + user.passwordChangeTokenId, user.passwordChangeToken)
           })
           .then(function(r) {
@@ -1008,10 +1014,13 @@ module.exports = function(cfg, makeServer) {
         return client.putThen('/account/' + user.accountId, user.account)
           .then(function() {
             return client.getThen('/passwordForgotToken/' + user.passwordForgotTokenId)
+            .then(function() {
+              assert(false, 'A non-existant session token should not have returned anything')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'A non-existant session token should not have returned anything')
-          }, function(err) {
+          .then(function() {
             return client.putThen('/passwordForgotToken/' + user.passwordForgotTokenId, user.passwordForgotToken)
           })
           .then(function(r) {
@@ -1167,16 +1176,17 @@ module.exports = function(cfg, makeServer) {
               respOk(r)
               assert(r.obj.createdAt <= Date.now(), 'returns { createdAt: Number }')
               return client.delThen('/account/' + uid + '/unblock/' + unblockCode)
+              .then(
+                function (r) {
+                  assert(false, 'This request should have failed (instead it suceeded)')
+                },
+                function (err) {
+                  testNotFound(err)
+                }
+              )
             }
           )
-          .then(
-            function (r) {
-              assert(false, 'This request should have failed (instead it suceeded)')
-            },
-            function (err) {
-              testNotFound(err)
-            }
-          )
+
 
       }
     )
@@ -1340,12 +1350,13 @@ module.exports = function(cfg, makeServer) {
             respOk(r)
             // check the accountResetToken exists
             return client.getThen('/accountResetToken/' + user.accountResetTokenId)
+            .then(() => {
+              assert(false, 'This request should have failed (instead it succeeded)')
+            }, (err) => {
+              testNotFound(err)
+            })
           })
-          .then(() => {
-            assert(false, 'This request should have failed (instead it succeeded)')
-          }, (err) => {
-            testNotFound(err)
-          })
+
       })
     })
 
