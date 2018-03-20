@@ -318,12 +318,13 @@ module.exports = function(cfg, makeServer) {
 
             // Attempt to fetch a non-existent session token
             return client.getThen('/sessionToken/' + user.sessionTokenId)
+            .then(function() {
+              assert(false, 'A non-existent session token should not have returned anything')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'A non-existent session token should not have returned anything')
-          }, function(err) {
-            testNotFound(err)
-
+          .then(function() {
             // Create a session token
             return client.putThen('/sessionToken/' + user.sessionTokenId, user.sessionToken)
           })
@@ -410,22 +411,24 @@ module.exports = function(cfg, makeServer) {
             return client.postThen('/tokens/' + crypto.randomBytes(16).toString('hex') + '/verify', {
               uid: user.accountId
             })
+            .then(function() {
+              assert(false, 'Verifying a non-existent token should fail')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'Verifying a non-existent token should fail')
-          }, function(err) {
-            testNotFound(err)
-
+          .then(function() {
             // Attempt to verify a session token with the wrong uid
             return client.postThen('/tokens/' + user.sessionToken.tokenVerificationId + '/verify', {
               uid: crypto.randomBytes(16).toString('hex')
             })
+            .then(function() {
+              assert(false, 'Verifying a non-existent token should fail')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'Verifying a non-existent token should fail')
-          }, function(err) {
-            testNotFound(err)
-
+          .then(function() {
             // Verify the unverified session token
             return client.postThen('/tokens/' + user.sessionToken.tokenVerificationId + '/verify', {
               uid: user.accountId
@@ -443,11 +446,11 @@ module.exports = function(cfg, makeServer) {
             return client.postThen('/tokens/' + user.sessionToken.tokenVerificationId + '/verify', {
               uid: user.accountId
             })
-          })
-          .then(function () {
-            assert(false, 'Verifying a verified token should have failed')
-          }, function (err) {
-            testNotFound(err)
+            .then(function () {
+              assert(false, 'Verifying a verified token should have failed')
+            }, function (err) {
+              testNotFound(err)
+            })
           })
           .then(function () {
             // Update the newly verified session token
@@ -742,23 +745,25 @@ module.exports = function(cfg, makeServer) {
           client.putThen('/account/' + user.accountId, user.account),
           client.putThen('/account/' + verifiedUser.accountId, verifiedUser.account)
         ])
-          .then(function () {
+         .then(function () {
             // Attempt to fetch a non-existent key fetch token
-            return client.getThen('/keyFetchToken/' + user.keyFetchTokenId)
-          })
-          .then(function (r) {
-            assert(false, 'A non-existent keyFetchToken should not have returned anything')
-          }, function (err) {
-            testNotFound(err)
-
-            // Attempt to fetch a non-existent key fetch token with its verification state
-            return client.getThen('/keyFetchToken/' + user.keyFetchTokenId + '/verified')
-          })
-          .then(function (r) {
-            assert(false, 'A non-existent keyFetchToken should not have returned anything')
-          }, function (err) {
-            testNotFound(err)
-
+           return client.getThen('/keyFetchToken/' + user.keyFetchTokenId)
+            .then(function () {
+              assert(false, 'A non-existent keyFetchToken should not have returned anything')
+            }, function (err) {
+              testNotFound(err)
+            })
+         })
+         .then(function () {
+              // Attempt to fetch a non-existent key fetch token with its verification state
+           return client.getThen('/keyFetchToken/' + user.keyFetchTokenId + '/verified')
+              .then(function () {
+                assert(false, 'A non-existent keyFetchToken should not have returned anything')
+              }, function (err) {
+                testNotFound(err)
+              })
+         })
+          .then(function () {
             // Create a session token and a key fetch token
             return P.all([
               client.putThen('/sessionToken/' + user.sessionTokenId, user.sessionToken),
@@ -799,7 +804,7 @@ module.exports = function(cfg, makeServer) {
             assert.equal(token.tokenVerificationId, user.keyFetchToken.tokenVerificationId, 'tokenVerificationId is correct')
 
             // Fetch the session token with its verification state
-            return client.getThen('/sessionToken/' + user.sessionTokenId + '/verified')
+            return client.getThen('/sessionToken/' + user.sessionTokenId)
           })
           .then(function (r) {
             assert.equal(r.obj.tokenVerificationId, user.sessionToken.tokenVerificationId, 'tokenVerificationId is correct')
@@ -808,22 +813,24 @@ module.exports = function(cfg, makeServer) {
             return client.postThen('/tokens/' + crypto.randomBytes(16).toString('hex') + '/verify', {
               uid: user.accountId
             })
+            .then(function () {
+              assert(false, 'Verifying a non-existent token should fail')
+            }, function (err) {
+              testNotFound(err)
+            })
           })
           .then(function (r) {
-            assert(false, 'Verifying a non-existent token should fail')
-          }, function (err) {
-            testNotFound(err)
-
             // Attempt to verify a key fetch token with the wrong uid
             return client.postThen('/tokens/' + user.keyFetchToken.tokenVerificationId + '/verify', {
               uid: crypto.randomBytes(16).toString('hex')
             })
+            .then(function () {
+              assert(false, 'Verifying a non-existent token should fail')
+            }, function (err) {
+              testNotFound(err)
+            })
           })
           .then(function (r) {
-            assert(false, 'Verifying a non-existent token should fail')
-          }, function (err) {
-            testNotFound(err)
-
             // Verify the key fetch token
             return client.postThen('/tokens/' + user.keyFetchToken.tokenVerificationId + '/verify', {
               uid: user.accountId
@@ -843,7 +850,7 @@ module.exports = function(cfg, makeServer) {
             assert.equal(r.obj.tokenVerificationId, null, 'tokenVerificationId is null')
 
             // Fetch the session token with its verification state
-            return client.getThen('/sessionToken/' + user.sessionTokenId + '/verified')
+            return client.getThen('/sessionToken/' + user.sessionTokenId)
           })
           .then(function (r) {
             assert.equal(r.obj.tokenVerificationId, null, 'tokenVerificationId is null')
@@ -852,11 +859,11 @@ module.exports = function(cfg, makeServer) {
             return client.postThen('/tokens/' + user.keyFetchToken.tokenVerificationId + '/verify', {
               uid: user.accountId
             })
-          })
-          .then(function () {
-            assert(false, 'Verifying a verified token should have failed')
-          }, function (err) {
-            testNotFound(err)
+            .then(function () {
+              assert(false, 'Verifying a verified token should have failed')
+            }, function (err) {
+              testNotFound(err)
+            })
           })
           .then(function () {
             // Create a verified key fetch token
@@ -888,12 +895,13 @@ module.exports = function(cfg, makeServer) {
 
             // Attempt to fetch a deleted key fetch token
             return client.getThen('/keyFetchToken/' + user.keyFetchTokenId)
+              .then(function () {
+                assert(false, 'Fetching the non-existant keyFetchToken should have failed')
+              }, function (err) {
+                testNotFound(err)
+              })
           })
-          .then(function (r) {
-            assert(false, 'Fetching the non-existant keyFetchToken should have failed')
-          }, function (err) {
-            testNotFound(err)
-          })
+
       }
     )
 
@@ -940,12 +948,13 @@ module.exports = function(cfg, makeServer) {
             respOk(r)
             // now make sure the token no longer exists
             return client.getThen('/accountResetToken/' + user.accountResetTokenId)
+            .then(function() {
+              assert(false, 'Fetching the non-existant accountResetToken should have failed')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'Fetching the non-existant accountResetToken should have failed')
-          }, function(err) {
-            testNotFound(err)
-          })
+
       }
     )
 
@@ -982,12 +991,13 @@ module.exports = function(cfg, makeServer) {
             respOk(r)
             // now make sure the token no longer exists
             return client.getThen('/passwordChangeToken/' + user.passwordChangeTokenId)
+            .then(function() {
+              assert(false, 'Fetching the non-existant passwordChangeToken should have failed')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'Fetching the non-existant passwordChangeToken should have failed')
-          }, function(err) {
-            testNotFound(err)
-          })
+
       }
     )
 
@@ -1049,12 +1059,13 @@ module.exports = function(cfg, makeServer) {
             respOk(r)
             // now make sure the token no longer exists
             return client.getThen('/passwordForgotToken/' + user.passwordForgotTokenId)
+            .then(function() {
+              assert(false, 'Fetching the non-existant passwordForgotToken should have failed')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'Fetching the non-existant passwordForgotToken should have failed')
-          }, function(err) {
-            testNotFound(err)
-          })
+
       }
     )
 
@@ -1088,12 +1099,14 @@ module.exports = function(cfg, makeServer) {
 
             // make sure then passwordForgotToken no longer exists
             return client.getThen('/passwordForgotToken/' + user.passwordForgotTokenId)
+            .then(function() {
+              assert(false, 'Fetching the non-existant passwordForgotToken should have failed')
+            }, function(err) {
+              testNotFound(err)
+            })
           })
-          .then(function(r) {
-            assert(false, 'Fetching the non-existant passwordForgotToken should have failed')
-          }, function(err) {
-            testNotFound(err)
-            // and check that the account has been verified
+          .then(function() {
+            //check that the account has been verified
             return client.getThen('/emailRecord/' + emailToHex(user.account.email))
           })
           .then(function(r) {
@@ -1281,11 +1294,11 @@ module.exports = function(cfg, makeServer) {
           .then((r) => {
             respOk(r)
             return client.getThen('/passwordForgotToken/' + user.passwordForgotTokenId)
-          })
-          .then(() => {
-            assert(false, 'This request should have failed (instead it succeeded)')
-          }, (err) => {
-            testNotFound(err)
+            .then(() => {
+              assert(false, 'This request should have failed (instead it succeeded)')
+            }, (err) => {
+              testNotFound(err)
+            })
           })
       })
 
@@ -1298,12 +1311,13 @@ module.exports = function(cfg, makeServer) {
           .then((r) => {
             respOk(r)
             return client.getThen('/passwordChangeToken/' + user.passwordChangeTokenId)
+            .then(() => {
+              assert(false, 'This request should have failed (instead it succeeded)')
+            }, (err) => {
+              testNotFound(err)
+            })
           })
-          .then(() => {
-            assert(false, 'This request should have failed (instead it succeeded)')
-          }, (err) => {
-            testNotFound(err)
-          })
+
       })
 
       it('should remove account reset token', () => {
