@@ -34,6 +34,12 @@ printf "Generating migration boilerplate for patch level $NEW_LEVEL..."
 
 echo "SET NAMES utf8mb4 COLLATE utf8mb4_bin;\n" > "$FWD_SCHEMA"
 echo "-- TODO: Implement your forward migration here\n" >> "$FWD_SCHEMA"
+
+echo "SELECT value INTO @patchlevel FROM `dbMetadata` WHERE `name` = `schema-patch-level`;"
+echo "IF @patchlevel != $PREV_LEVEL THEN
+    SIGNAL SQLSTATE '45000' SET MYSQL_ERRNO = 1643, MESSAGE_TEXT = 'Could not migrate to next patch';
+  END IF;"
+
 echo "UPDATE dbMetadata SET value = '$NEW_LEVEL' WHERE name = 'schema-patch-level';\n" >> "$FWD_SCHEMA"
 
 echo '-- -- TODO: Implement your *commented-out* reverse migration here\n' > "$REV_SCHEMA"
