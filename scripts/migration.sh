@@ -32,11 +32,13 @@ fi
 
 printf "Generating migration boilerplate for patch level $NEW_LEVEL..."
 
-echo "SET NAMES utf8mb4 COLLATE utf8mb4_bin;\n" > "$FWD_SCHEMA"
+echo "SET SESSION sql_mode = CONCAT(@@sql_mode, ',STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION');" > "$FWD_SCHEMA"
+echo "SET NAMES utf8mb4 COLLATE utf8mb4_bin;\n" >> "$FWD_SCHEMA"
 echo "-- TODO: Implement your forward migration here\n" >> "$FWD_SCHEMA"
 echo "UPDATE dbMetadata SET value = '$NEW_LEVEL' WHERE name = 'schema-patch-level';\n" >> "$FWD_SCHEMA"
 
 echo '-- -- TODO: Implement your *commented-out* reverse migration here\n' > "$REV_SCHEMA"
+echo "-- SET SESSION sql_mode = CONCAT(@@sql_mode, ',STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION');" > "$REV_SCHEMA"
 echo "-- SET NAMES utf8mb4 COLLATE utf8mb4_bin;\n" >> "$REV_SCHEMA"
 echo "-- UPDATE dbMetadata SET value = '$PREV_LEVEL' WHERE name = 'schema-patch-level';\n" >> "$REV_SCHEMA"
 
