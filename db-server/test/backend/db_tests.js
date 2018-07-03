@@ -2280,7 +2280,6 @@ module.exports = function (config, DB) {
       it('should get account recovery key', () => {
         const options = {
           id: account.uid,
-          recoveryKeyId: data.recoveryKeyId
         }
         return db.getRecoveryKey(options)
           .then((res) => {
@@ -2291,19 +2290,7 @@ module.exports = function (config, DB) {
 
       it('should fail to get key for incorrect user', () => {
         const options = {
-          id: 'unknown',
-          recoveryKeyId: data.recoveryKeyId
-        }
-        return db.getRecoveryKey(options)
-          .then(assert.fail, (err) => {
-            assert.equal(err.errno, 116, 'not found')
-          })
-      })
-
-      it('should fail to get unknown key', () => {
-        const options = {
-          id: account.uid,
-          recoveryKeyId: 'not real recovery key'
+          id: 'unknown'
         }
         return db.getRecoveryKey(options)
           .then(assert.fail, (err) => {
@@ -2313,12 +2300,18 @@ module.exports = function (config, DB) {
 
       it('should delete account recovery key', () => {
         const options = {
-          id: account.uid,
-          recoveryKeyId: data.recoveryKeyId
+          id: account.uid
         }
         return db.deleteRecoveryKey(options)
           .then((res) => {
             assert.ok(res)
+            const options = {
+              id: account.uid
+            }
+            return db.getRecoveryKey(options)
+              .then(assert.fail, (err) => {
+                assert.equal(err.errno, 116, 'not found')
+              })
           })
       })
     })

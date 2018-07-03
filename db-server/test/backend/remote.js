@@ -1748,16 +1748,16 @@ module.exports = function(cfg, makeServer) {
         assert.ok(recoveryKey)
       })
 
-      it('should get a recovery key', () => {
-        return client.getThen('/account/' + user.accountId + '/recoveryKeys/' + recoveryKey.recoveryKeyId)
+      it('should get recovery key', () => {
+        return client.getThen('/account/' + user.accountId + '/recoveryKeys')
           .then((res) => {
             const recoveryKeyResult = res.obj
             assert.equal(recoveryKeyResult.recoveryData, recoveryKey.recoveryData, 'recoveryData match')
           })
       })
 
-      it('should delete a recovery key', () => {
-        return client.delThen('/account/' + user.accountId + '/recoveryKeys/' + recoveryKey.recoveryKeyId.toString('hex'))
+      it('should delete recovery key', () => {
+        return client.delThen('/account/' + user.accountId + '/recoveryKeys')
           .then((r) => {
             respOkEmpty(r)
           })

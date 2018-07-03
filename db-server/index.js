@@ -236,8 +236,8 @@ function createServer(db) {
     op((req) => db.consumeRecoveryCode(req.params.id, req.params.code))
   )
 
-  api.get('/account/:id/recoveryKeys/:recoveryKeyId', withParams(db.getRecoveryKey))
-  api.del('/account/:id/recoveryKeys/:recoveryKeyId', withParams(db.deleteRecoveryKey))
+  api.get('/account/:id/recoveryKeys', withParams(db.getRecoveryKey))
+  api.del('/account/:id/recoveryKeys', withParams(db.deleteRecoveryKey))
   api.post('/account/:id/recoveryKeys', withIdAndBody(db.createRecoveryKey))
 
   api.get(
