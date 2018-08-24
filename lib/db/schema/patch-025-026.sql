@@ -31,7 +31,7 @@ CREATE PROCEDURE `fetchVerificationReminders_1` (
     IN reminderType VARCHAR(255),
     IN reminderTime BIGINT SIGNED,
     IN reminderTimeOutdated BIGINT SIGNED,
-    IN reminderLimit INTEGER
+    IN reminderLimitArg INTEGER
 )
 BEGIN
     -- Find reminders based on the reminderTime range, delete them and return them.
@@ -63,7 +63,7 @@ BEGIN
       (ROUND(UNIX_TIMESTAMP(CURTIME(4)) * 1000) - createdAt) < reminderTimeOutdated
     AND
       type = reminderType
-    LIMIT reminderLimit
+    LIMIT reminderLimitArg
     FOR UPDATE;
 
     -- Avoid infinite loop in the cursor

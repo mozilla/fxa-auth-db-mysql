@@ -13,7 +13,7 @@ INSERT INTO dbMetadata (name, value)
 VALUES ('sessionTokensPrunedUntil', 0);
 
 -- Update prune to delete sessionTokens and unverifiedTokens.
-CREATE PROCEDURE `prune_6` (IN `olderThan` BIGINT UNSIGNED)
+CREATE PROCEDURE `prune_6` (IN `olderThanArg` BIGINT UNSIGNED)
 BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -24,11 +24,11 @@ BEGIN
   SELECT @lockAcquired := GET_LOCK('fxa-auth-server.prune-lock', 3);
 
   IF @lockAcquired THEN
-    DELETE FROM accountResetTokens WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
-    DELETE FROM passwordForgotTokens WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
-    DELETE FROM passwordChangeTokens WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
-    DELETE FROM unblockCodes WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
-    DELETE FROM signinCodes WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
+    DELETE FROM accountResetTokens WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
+    DELETE FROM passwordForgotTokens WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
+    DELETE FROM passwordChangeTokens WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
+    DELETE FROM unblockCodes WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
+    DELETE FROM signinCodes WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
 
     -- Pruning session tokens is more complicated because we can't
     -- prune them if there is an associated device record.
@@ -40,7 +40,7 @@ BEGIN
     -- Step 2: Find out how far we will get on this iteration.
     SELECT @pruneUntil := MAX(createdAt) FROM (
       SELECT createdAt FROM sessionTokens
-      WHERE createdAt >= @pruneFrom AND createdAt < olderThan
+      WHERE createdAt >= @pruneFrom AND createdAt < olderThanArg
       AND NOT EXISTS (
         SELECT sessionTokenId FROM devices
         WHERE uid = sessionTokens.uid

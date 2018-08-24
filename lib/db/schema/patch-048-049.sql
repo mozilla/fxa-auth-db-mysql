@@ -1,13 +1,13 @@
-CREATE PROCEDURE `prune_3` (IN `olderThan` BIGINT UNSIGNED)
+CREATE PROCEDURE `prune_3` (IN `olderThanArg` BIGINT UNSIGNED)
 BEGIN
   SELECT @lockAcquired := GET_LOCK('fxa-auth-server.prune-lock', 3);
 
   IF @lockAcquired THEN
-    DELETE FROM accountResetTokens WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
-    DELETE FROM passwordForgotTokens WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
-    DELETE FROM passwordChangeTokens WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
-    DELETE FROM unblockCodes WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
-    DELETE FROM signinCodes WHERE createdAt < olderThan ORDER BY createdAt LIMIT 10000;
+    DELETE FROM accountResetTokens WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
+    DELETE FROM passwordForgotTokens WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
+    DELETE FROM passwordChangeTokens WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
+    DELETE FROM unblockCodes WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
+    DELETE FROM signinCodes WHERE createdAt < olderThanArg ORDER BY createdAt LIMIT 10000;
 
     SELECT RELEASE_LOCK('fxa-auth-server.prune-lock');
   END IF;
@@ -17,7 +17,7 @@ DROP PROCEDURE `expireSigninCodes_1`;
 
 CREATE PROCEDURE `consumeSigninCode_2` (
   IN `hashArg` BINARY(32),
-  IN `newerThan` BIGINT UNSIGNED
+  IN `newerThanArg` BIGINT UNSIGNED
 )
 BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -34,12 +34,12 @@ BEGIN
     SELECT uid
     FROM signinCodes
     WHERE hash = hashArg
-	AND createdAt > newerThan
+    AND createdAt > newerThanArg
   );
 
   DELETE FROM signinCodes
   WHERE hash = hashArg
-  AND createdAt > newerThan;
+  AND createdAt > newerThanArg;
 
   COMMIT;
 END;

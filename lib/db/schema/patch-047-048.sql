@@ -42,11 +42,11 @@ BEGIN
 END;
 
 CREATE PROCEDURE `expireSigninCodes_1` (
-  IN `olderThan` BIGINT UNSIGNED
+  IN `olderThanArg` BIGINT UNSIGNED
 )
 BEGIN
   DELETE FROM signinCodes
-  WHERE createdAt < olderThan;
+  WHERE createdAt < olderThanArg;
 END;
 
 CREATE PROCEDURE `deleteAccount_13` (
