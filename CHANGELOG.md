@@ -1,3 +1,31 @@
+<a name="1.122.0"></a>
+# [1.122.0](https://github.com/mozilla/fxa-auth-db-mysql/compare/v1.117.0...v1.122.0) (2018-10-02)
+
+
+### Bug Fixes
+
+* **devices:** Reinstate device commands, with performance fixes. (#389) r=@vladikoff,@philboot ([a01e4aa](https://github.com/mozilla/fxa-auth-db-mysql/commit/a01e4aa)), closes [#384](https://github.com/mozilla/fxa-auth-db-mysql/issues/384) [#384](https://github.com/mozilla/fxa-auth-db-mysql/issues/384)
+* **recovery:** hash recovery key ([fe12332](https://github.com/mozilla/fxa-auth-db-mysql/commit/fe12332))
+* **restify:** set keepAliveTimeout correctly on api.server object (#381) ([afc376c](https://github.com/mozilla/fxa-auth-db-mysql/commit/afc376c))
+* **restify:** set server.keepAliveTimeout to 120s, similar to in node6 (#380) ([5ece670](https://github.com/mozilla/fxa-auth-db-mysql/commit/5ece670))
+* **scripts:** remove nonsense (but harmless) comparison of bool to -1 (#394) r=@vladikoff ([13ca415](https://github.com/mozilla/fxa-auth-db-mysql/commit/13ca415))
+
+### chore
+
+* **db:** ensure mem db behaves like mysql db ([8d5d55f](https://github.com/mozilla/fxa-auth-db-mysql/commit/8d5d55f))
+* **db:** stop calling the upsertAvailableCommands procedure ([06554f5](https://github.com/mozilla/fxa-auth-db-mysql/commit/06554f5))
+* **docs:** update mysql docs (#391) r=@rfk ([64634d4](https://github.com/mozilla/fxa-auth-db-mysql/commit/64634d4))
+* **scripts:** disable the explain script in production ([52447bb](https://github.com/mozilla/fxa-auth-db-mysql/commit/52447bb))
+* **scripts:** tweak some old migrations to fix explain errors ([9e9457c](https://github.com/mozilla/fxa-auth-db-mysql/commit/9e9457c))
+
+### Features
+
+* **account:** add `profileChangedAt` property to account table ([24917b7](https://github.com/mozilla/fxa-auth-db-mysql/commit/24917b7))
+* **scripts:** add an ignore file for the explain script ([b90688c](https://github.com/mozilla/fxa-auth-db-mysql/commit/b90688c))
+* **scripts:** add script to automate MySQL EXPLAIN checks ([31fff59](https://github.com/mozilla/fxa-auth-db-mysql/commit/31fff59))
+
+
+
 <a name="1.121.0"></a>
 # [1.121.0](https://github.com/mozilla/fxa-auth-db-mysql/compare/v1.120.0...v1.121.0) (2018-09-18)
 
