@@ -82,11 +82,13 @@ function createServer(db) {
     // but are passed into the API as hex strings.
     'authKey',
     'authSalt',
+    'clientId',
     'data',
     'deviceId',
     'emailCode',
     'flowId',
     'id',
+    'instanceId',
     'kA',
     'keyBundle',
     'passCode',
@@ -184,6 +186,11 @@ function createServer(db) {
   api.post('/totp/:id/update', withIdAndBody(db.updateTotpToken))
 
   api.get('/__heartbeat__', withIdAndBody(db.ping))
+
+  api.get('/account/:uid/clients_instances', withSpreadParams(db.clientsInstances))
+  api.get('/account/:uid/client_instance/:id', withSpreadParams(db.clientInstance))
+  api.del('/account/:uid/client_instance/:id', withSpreadParams(db.deleteClientInstance))
+  api.post('/account/:uid/client_instance/:id', withSpreadParamsAndBody(db.upsertClientInstance))
 
   api.get('/account/:id/devices', withIdAndBody(db.accountDevices))
   api.get('/account/:uid/device/:deviceId', withSpreadParams(db.device))

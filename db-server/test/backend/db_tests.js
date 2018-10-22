@@ -109,6 +109,21 @@ function makeMockDevice(tokenId) {
   return device
 }
 
+function makeMockClientInstance(clientId) {
+  const instance = {
+    id: newUuid(),
+    clientId,
+    name: 'Test Client Instance',
+    pushEndpoint: 'https://push.server',
+    pushPublicKey: 'foo',
+    pushAuthKey: 'bar',
+    availableCommands: {
+      'https://identity.mozilla.com/cmd/display-uri': 'metadata-bundle'
+    }
+  }
+  return instance
+}
+
 function makeMockForgotPasswordToken(uid) {
   const token = {
     data: hex32(),
@@ -1150,6 +1165,109 @@ module.exports = function (config, DB) {
             return db.accountDevices(accountData.uid)
           })
           .then((devices) => assert.equal(devices.length, 0, 'devices length 0'))
+      })
+    })
+
+    describe('db.clientsInstances', () => {
+      const clientId = crypto.randomBytes(8)
+      let clientInstance
+      beforeEach(() => {
+        clientInstance = makeMockClientInstance(clientId)
+        return db.upsertClientInstance(accountData.uid, clientInstance.id, clientInstance)
+          .then((result) => {
+            return assert.deepEqual(result, {}, 'returned empty object')
+          })
+      })
+
+      it('should have created client instance', () => {
+        return db.clientInstance(accountData.uid, clientInstance.id)
+          .then((i) => {
+            assert.deepEqual(i.id, clientInstance.id, 'id')
+            assert.deepEqual(i.clientId, clientInstance.clientId, 'clientId')
+            assert.equal(i.name, clientInstance.name, 'name')
+            assert.equal(i.pushEndpoint, clientInstance.pushEndpoint, 'pushEndpoint')
+            assert.equal(i.pushPublicKey, clientInstance.pushPublicKey, 'pushPublicKey')
+            assert.equal(i.pushAuthKey, clientInstance.pushAuthKey, 'pushAuthKey')
+            assert.deepEqual(i.availableCommands, clientInstance.availableCommands, 'availableCommands')
+          })
+      })
+
+      it('should get all clients instances', () => {
+        return db.clientsInstances(accountData.uid)
+          .then((instances) => {
+            assert.equal(instances.length, 1, 'instances length 1')
+            const instance = instances[0]
+            assert.deepEqual(instance.id, clientInstance.id, 'id')
+            assert.deepEqual(instance.clientId, clientInstance.clientId, 'clientId')
+            assert.equal(instance.name, clientInstance.name, 'name')
+            assert.equal(instance.pushEndpoint, clientInstance.pushEndpoint, 'pushEndpoint')
+            assert.equal(instance.pushPublicKey, clientInstance.pushPublicKey, 'pushPublicKey')
+            assert.equal(instance.pushAuthKey, clientInstance.pushAuthKey, 'pushAuthKey')
+            assert.deepEqual(instance.availableCommands, clientInstance.availableCommands, 'availableCommands')
+          })
+      })
+
+      it('should update client instance', () => {
+        clientInstance.name = 'New New Client Instance'
+        clientInstance.pushEndpoint = ''
+        clientInstance.pushPublicKey = ''
+        clientInstance.pushAuthKey = ''
+        clientInstance.availableCommands = {}
+
+        return db.upsertClientInstance(accountData.uid, clientInstance.id, clientInstance)
+          .then((result) => {
+            assert.deepEqual(result, {}, 'returned empty object')
+            return db.clientsInstances(accountData.uid)
+          })
+          .then((instances) => {
+            assert.equal(instances.length, 1, 'instances length 1')
+            const instance = instances[0]
+            assert.equal(instance.name, 'New New Client Instance', 'name updated')
+            assert.equal(instance.pushEndpoint, '', 'callbackURL unchanged')
+            assert.equal(instance.pushPublicKey, '', 'callbackPublicKey unchanged')
+            assert.equal(instance.pushAuthKey, '', 'callbackAuthKey unchanged')
+            assert.deepEqual(instance.availableCommands, {}, 'availableCommands updated')
+          })
+      })
+
+      it('availableCommands are overwritten on update', () => {
+        const newInstance = Object.assign({}, clientInstance, {
+          availableCommands: {
+            foo: 'bar',
+            second: 'command'
+          }
+        })
+        return db.upsertClientInstance(accountData.uid, clientInstance.id, newInstance)
+          .then(() => {
+            return db.clientInstance(accountData.uid, clientInstance.id)
+          })
+          .then(instance => assert.deepEqual(instance.availableCommands, {
+            foo: 'bar',
+            second: 'command'
+          }))
+      })
+
+      it('availableCommands can update metadata on an existing command', () => {
+        const newInstance = Object.assign({}, clientInstance, {
+          availableCommands: {
+            'https://identity.mozilla.com/cmd/display-uri': 'new-metadata'
+          }
+        })
+        return db.upsertClientInstance(accountData.uid, clientInstance.id, newInstance)
+          .then(() => {
+            return db.clientInstance(accountData.uid, clientInstance.id)
+          })
+          .then(instance => assert.deepEqual(instance.availableCommands, {
+            'https://identity.mozilla.com/cmd/display-uri': 'new-metadata'
+          }))
+      })
+
+      it('should fail to delete non-existent client instance metadata', () => {
+        return db.deleteClientInstance(accountData.uid, hex16())
+          .then(assert.fail, (err) => {
+            assert.equal(err.code, 404, 'err.code')
+            assert.equal(err.errno, 116, 'err.errno')
+          })
       })
     })
 
