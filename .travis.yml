@@ -4,13 +4,16 @@ node_js:
  - "8"
 
 dist: trusty
+# https://docs.travis-ci.com/user/database-setup/#mysql-57
+sudo: true
 
 addons:
   apt:
+    sources:
+    - mysql-5.7-trusty
     packages:
-    - mysql-server-5.7
-    - mysql-client-core-5.7
-    - mysql-client-5.7
+    - mysql-server
+    - mysql-client
 
 services:
   - mysql
@@ -27,6 +30,9 @@ notifications:
     skip_join: false
 
 before_install:
+  - sudo mysql -e "use mysql; update user set authentication_string=PASSWORD('') where User='root'; update user set plugin='mysql_native_password';FLUSH PRIVILEGES;"
+  - sudo mysql_upgrade -u root
+  - sudo service mysql restart
   - npm config set spin false
 
 before_script:
