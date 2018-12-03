@@ -82,6 +82,8 @@ function createServer(db) {
     // but are passed into the API as hex strings.
     'authKey',
     'authSalt',
+    'clientId',
+    'clientInstanceId',
     'data',
     'deviceId',
     'emailCode',
@@ -141,7 +143,6 @@ function createServer(db) {
   api.del('/sessionToken/:id', withIdAndBody(db.deleteSessionToken))
   api.put('/sessionToken/:id', withIdAndBody(db.createSessionToken))
   api.post('/sessionToken/:id/update', withIdAndBody(db.updateSessionToken))
-  api.get('/sessionToken/:id/device', withIdAndBody(db.sessionToken))
 
   api.get('/keyFetchToken/:id', withIdAndBody(db.keyFetchToken))
   api.del('/keyFetchToken/:id', withIdAndBody(db.deleteKeyFetchToken))
@@ -185,11 +186,12 @@ function createServer(db) {
 
   api.get('/__heartbeat__', withIdAndBody(db.ping))
 
-  api.get('/account/:id/devices', withIdAndBody(db.accountDevices))
-  api.get('/account/:uid/device/:deviceId', withSpreadParams(db.device))
-  api.put('/account/:uid/device/:deviceId', withSpreadParamsAndBody(db.createDevice))
-  api.post('/account/:uid/device/:deviceId/update', withSpreadParamsAndBody(db.updateDevice))
-  api.del('/account/:uid/device/:deviceId', withSpreadParams(db.deleteDevice))
+  api.get('/account/:uid/client_instances', withSpreadParams(db.clientInstances))
+  api.get('/account/:uid/client_instance/:id', withSpreadParams(db.clientInstance))
+  api.put('/account/:uid/client_instance/:id', withSpreadParamsAndBody(db.createClientInstance))
+  api.del('/account/:uid/client_instance/:id', withSpreadParams(db.deleteClientInstance))
+  api.post('/account/:uid/client_instance/:id/update', withSpreadParamsAndBody(db.updateClientInstance))
+
 
   function op(fn) {
     return function (req, res, next) {
@@ -203,12 +205,11 @@ function createServer(db) {
   }
 
   api.get(
-    '/account/:uid/tokens/:tokenVerificationId/device',
+    '/account/:uid/tokens/:tokenVerificationId/client_instance',
     op(function (req) {
-      return db.deviceFromTokenVerificationId(req.params.uid, req.params.tokenVerificationId)
+      return db.clientInstanceFromTokenVerificationId(req.params.uid, req.params.tokenVerificationId)
     })
   )
-
 
   api.put(
     '/account/:uid/unblock/:code',
@@ -264,6 +265,73 @@ function createServer(db) {
       next()
     }
   )
+
+  
+  
+  // Deprecated APIs.
+  
+  api.get('/account/:id/devices', withIdAndBody(db.accountDevices))
+  api.get('/account/:uid/device/:deviceId', withSpreadParams(db.device))
+  api.put('/account/:uid/device/:deviceId', withSpreadParamsAndBody(db.createDevice))
+  api.post('/account/:uid/device/:deviceId/update', withSpreadParamsAndBody(db.updateDevice))
+  api.del('/account/:uid/device/:deviceId', withSpreadParams(db.deleteDevice))
+  api.get(
+    '/account/:uid/tokens/:tokenVerificationId/device',
+    op(function (req) {
+      return db.deviceFromTokenVerificationId(req.params.uid, req.params.tokenVerificationId)
+    })
+  )
+
+  // Defining them here saves us having to duplicate implementation logic.
+  function deprecated_sessions(uid) {
+    //XXX TODO: implement in terms of clientInstances().
+  }
+
+  function deprecated_accountDevices(uid) {
+    // XXX TODO: implement in terms of clientInstances().
+  }
+
+  function deprecated_device(uid, id) {
+    // XXX TODO: implement in terms of clientInstance()
+  }
+
+  function deprecated_deviceFromTokenVerificationId(uid, tokenVerificationId) {
+    // XXX TODO: implement in terms of clientInstanceFromTokenVerificationId
+  }
+
+  function deprecated_createDevice(uid, deviceId, deviceInfo) {
+    //XXX TODO: implement in terms of upsertClientInstance().
+    params = [
+      uid,
+      deviceId,
+      deviceInfo.sessionTokenId,
+      deviceInfo.name, // inNameUtf8
+      deviceInfo.type,
+      deviceInfo.createdAt,
+      deviceInfo.callbackURL,
+      deviceInfo.callbackPublicKey,
+      deviceInfo.callbackAuthKey
+    ]
+  }
+
+  function deprecated_updateDevice(uid, deviceId, deviceInfo) {
+    //XXX TODO: implement in terms of upsertClientInstance().
+    params = [
+      uid,
+      deviceId,
+      deviceInfo.sessionTokenId,
+      deviceInfo.name, // inNameUtf8
+      deviceInfo.type,
+      deviceInfo.callbackURL,
+      deviceInfo.callbackPublicKey,
+      deviceInfo.callbackAuthKey,
+      deviceInfo.callbackIsExpired
+    ]
+  }
+
+  function deprecated_deleteDevice(uid, deviceId) {
+    //XXX TODO: implement in terms of deleteClientInstance().
+  }
 
   function handleSuccess(req, res, result) {
     api.emit(

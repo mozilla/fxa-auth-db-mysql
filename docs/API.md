@@ -58,16 +58,19 @@ The following datatypes are used throughout this document:
     * resetTokens               : `POST /account/:id/resetTokens`
     * deleteAccount             : `DELETE /account/:id`
     * verifyEmail               : `POST /account/:id/verifyEmail`
-    * sessions                  : `GET /account/:id/sessions`
-    * devices                   : `GET /account/:id/devices`
-    * deviceFromTokenVerificationId : `GET /account/:id/tokens/:tokenVerificationId/device`
-* Devices:
-    * createDevice              : `PUT /account/:id/device/:deviceId`
-    * updateDevice              : `POST /account/:id/device/:deviceId/update`
-    * deleteDevice              : `DELETE /account/:id/device/:deviceId`
+    * clientInstances           : `GET /account/:id/client_instances`
+    * deprecated:
+        * sessions              : `GET /account/:id/sessions`
+        * devices               : `GET /account/:id/devices`
+        * deviceFromTokenVerificationId     : `GET /account/:id/tokens/:tokenVerificationId/device`
+* Client Instances:
+    * clientInstance            : `GET /account/:id/client_instance/:instanceId`
+    * clientInstanceFromTokenVerificationId : `GET /account/:id/tokens/:tokenVerificationId/client_instance`
+    * createClientInstance      : `POST /account/:id/client_instance/:instanceId`
+    * updateClientInstance      : `POST /account/:id/client_instance/:instanceId/update`
+    * deleteClientInstance      : `DELETE /account/:id/client_instance/:instanceId`
 * Session Tokens:
     * sessionToken              : `GET /sessionToken/:id`
-    * sessionWithDevice         : `GET /sessionToken/:id/device`
     * deleteSessionToken        : `DELETE /sessionToken/:id`
     * createSessionToken        : `PUT /sessionToken/:id`
     * updateSessionToken        : `POST /sessionToken/:id/update`
@@ -76,7 +79,6 @@ The following datatypes are used throughout this document:
     * deleteAccountResetToken   : `DELETE /accountResetToken/:id`
 * Key Fetch Tokens:
     * keyFetchToken             : `GET /keyFetchToken/:id`
-    * keyFetchTokenWithVerificationStatus : `GET /keyFetchToken/:id/verified`
     * deleteKeyFetchToken       : `DELETE /keyFetchToken/:id`
     * createKeyFetchToken       : `PUT /keyFetchToken/:id`
 * Password Change Tokens:
@@ -107,6 +109,11 @@ The following datatypes are used throughout this document:
     * createRecoverykey         : `POST /account/:id/recoveryKeys`
     * getRecoveryKey            : `GET /account/:id/recoveryKeys/:recoveryKeyId`
     * deleteRecoveryKey         : `DELETE /account/:id/recoveryKeys/:recoveryKeyId`
+* Deprecated:
+    * Devices:
+        * createDevice          : `PUT /account/:id/device/:deviceId`
+        * updateDevice          : `POST /account/:id/device/:deviceId/update`
+        * deleteDevice          : `DELETE /account/:id/device/:deviceId`
 
 ## Ping : `GET /`
 
@@ -459,57 +466,6 @@ Content-Length: 2
 
 Note: if the account `uid` is not found, a `200 OK` is returned anyway.
 
-## sessions : `GET /account/<uid>/sessions`
-
-```
-curl \
-    -v \
-    -X GET \
-    http://localhost:8000/account/6044486dd15b42e08b1fb9167415b9ac/sessions
-```
-
-### Request
-
-* Method : GET
-* Path : `/account/<uid>/sessions`
-    * uid : hex128
-* Params: none
-
-### Response
-
-```
-HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: 371
-
-[
-    {
-        "id":"522c251a1623e1f1db1f4fe68b9594d26772d6e77e04cb68e110c58600f97a77",
-        "uid":"6044486dd15b42e08b1fb9167415b9ac",
-        "createdAt":1425004396952,
-        "uaBrowser":"Firefox",
-        "uaBrowserVersion":"42",
-        "uaOS":"Mac OS X",
-        "uaOSVersion":"10.10",
-        "uaDeviceType":null,
-        "uaFormFactor":null,
-        "lastAccessTime":1441874852627
-    }
-]
-```
-
-* Status Code : 200 OK
-    * Content-Type : 'application/json'
-    * Body : `[...]`
-* Status Code : 500 Internal Server Error
-    * Conditions: if something goes wrong on the server
-    * Content-Type : 'application/json'
-    * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
-
-Note: if the account `uid` is not found,
-the response is `200 OK`
-with an empty array in the body.
-
 ## createSessionToken : `PUT /sessionToken/<tokenId>`
 
 ### Example
@@ -632,7 +588,203 @@ Content-Length: 2
     * Content-Type : 'application/json'
     * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
 
+## clientInstances : `GET /account/<uid>/client_instances`
+
+Returns the list of all client instances connected to a user's account.
+This includes web-based login sessions, sessionToken-based sync login sessions,
+and OAuth refresh-token clients.
+
+N.B. the canonical list of refresh tokens is curretly managed by a separate service,
+and must be merged into this list by the calling code.
+
+### Example
+
+```
+curl \
+    -v \
+    -X GET \
+    http://localhost:8000/account/6044486dd15b42e08b1fb9167415b9ac/client_instances
+```
+
+### Request
+
+* Method : GET
+* Path : `/account/<uid>/client_instances`
+    * uid : hex32
+* Params: none
+
+### Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[
+    {
+        "uid": "6044486dd15b42e08b1fb9167415b9ac",
+        "email": "foo@example.org",
+        "clientId": "e32bcaf4314d933e",
+        "clientInstanceId": "154c86dde08bfbb47415b9a216044916",
+        "sessionTokenId": "9a15b9ad6044ce08bfbb4744b1604491686dd15b42e2154c86d08b1fb9167415",
+        "refreshTokenId": null,
+        "createdAt": 1437992394186,
+        "name": "My Phone",
+        "pushURL": "https://updates.push.services.mozilla.com/update/abcdef01234567890abcdefabcdef01234567890abcdef",
+        "pushPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
+        "pushAuthKey": "w3b14Zjc-Afj2SDOLOyong",
+        "pushEndpointExpired": false,
+        "availableCommands": {},
+        "uaBrowser": "Firefox",
+        "uaBrowserVersion": "42",
+        "uaOS": "Android",
+        "uaOSVersion": "5.1",
+        "uaDeviceType": "mobile",
+        "uaFormFactor": null,
+        "lastAccessTime": 1437992394186
+    }
+]
+```
+
+Note that any or all of `clientInstanceId`, `sessionTokenId` and `refreshTokenId` may be `null`,
+depending on the type of client
+and on whether it has explicitly registered its client instance metadata.
+
+* Status Code : 200 OK
+    * Content-Type : 'application/json'
+    * Body : `[ ... <see example> ...]`
+* Status Code : 404 Not Found
+    * Conditions: if this account `uid` doesn't exist
+    * Content-Type : 'application/json'
+    * Body : `{"message":"Not Found"}`
+* Status Code : 500 Internal Server Error
+    * Conditions: if something goes wrong on the server
+    * Content-Type : 'application/json'
+    * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
+
+## clientInstanceFromTokenVerificationId : `GET /account/<uid>/tokens/<tokenVerificationId>/client_instance`
+
+Given an outstanding `tokenVerificationId`,
+this returns the client instance record
+that holds the corresponding `sessionToken` (if any).
+
+### Example
+
+```
+curl \
+    -v \
+    -X GET \
+    http://localhost:8000/account/6044486dd15b42e08b1fb9167415b9ac/tokens/12c41fac80fd6149f3f695e188b5f846/client_instance
+```
+
+### Request
+
+* Method : GET
+* Path : `/account/<uid>/tokens/<tokenVerificationId>/client_instance`
+    * uid : hex128
+    * tokenVerificationId : hex128
+* Params: none
+
+### Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    {
+        "uid": "6044486dd15b42e08b1fb9167415b9ac",
+        "email": "foo@example.org",
+        "clientId": "e32bcaf4314d933e", 
+        "clientInstanceId": "154c86dde08bfbb47415b9a216044916",
+        "sessionTokenId": "9a15b9ad6044ce08bfbb4744b1604491686dd15b42e2154c86d08b1fb9167415",
+        "refreshTokenId": null,
+        "createdAt": 1437992394186,
+        "name": "My Phone",
+        "pushURL": "https://updates.push.services.mozilla.com/update/abcdef01234567890abcdefabcdef01234567890abcdef",
+        "pushPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
+        "pushAuthKey": "w3b14Zjc-Afj2SDOLOyong",
+        "pushEndpointExpired": false,
+        "availableCommands": {},
+        "uaBrowser": "Firefox",
+        "uaBrowserVersion": "42",
+        "uaOS": "Android",
+        "uaOSVersion": "5.1",
+        "uaDeviceType": "mobile",
+        "uaFormFactor": null,
+        "lastAccessTime": 1437992394186
+    }
+}
+```
+
+* Status Code : 200 OK
+    * Content-Type : 'application/json'
+    * Body : `[ ... <see example> ...]`
+* Status Code : 404 Not Found
+    * Conditions: if the `tokenVerificationId` doesn't exist or if there is no client instance associated with it
+    * Content-Type : 'application/json'
+    * Body : `{"message":"Not Found"}`
+* Status Code : 500 Internal Server Error
+    * Conditions: if something goes wrong on the server
+    * Content-Type : 'application/json'
+    * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
+
+
+## sessions : `GET /account/<uid>/sessions`
+
+Deprecated; use `GET /account/<uid>/client_instances` instead.
+
+```
+curl \
+    -v \
+    -X GET \
+    http://localhost:8000/account/6044486dd15b42e08b1fb9167415b9ac/sessions
+```
+
+### Request
+
+* Method : GET
+* Path : `/account/<uid>/sessions`
+    * uid : hex128
+* Params: none
+
+### Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 371
+
+[
+    {
+        "id":"522c251a1623e1f1db1f4fe68b9594d26772d6e77e04cb68e110c58600f97a77",
+        "uid":"6044486dd15b42e08b1fb9167415b9ac",
+        "createdAt":1425004396952,
+        "uaBrowser":"Firefox",
+        "uaBrowserVersion":"42",
+        "uaOS":"Mac OS X",
+        "uaOSVersion":"10.10",
+        "uaDeviceType":null,
+        "uaFormFactor":null,
+        "lastAccessTime":1441874852627
+    }
+]
+```
+
+* Status Code : 200 OK
+    * Content-Type : 'application/json'
+    * Body : `[...]`
+* Status Code : 500 Internal Server Error
+    * Conditions: if something goes wrong on the server
+    * Content-Type : 'application/json'
+    * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
+
+Note: if the account `uid` is not found,
+the response is `200 OK`
+with an empty array in the body.
+
 ## accountDevices : `GET /account/<uid>/devices`
+
+Deprecated; use `GET /account/<uid>/client_instances` instead.
 
 ### Example
 
@@ -670,7 +822,7 @@ Content-Type: application/json
         "callbackPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
         "callbackAuthKey": "w3b14Zjc-Afj2SDOLOyong",
         "callbackIsExpired": false,
-        "capabilities": ["messages"],
+        "availableCommands": {},
         "uaBrowser": "Firefox",
         "uaBrowserVersion": "42",
         "uaOS": "Android",
@@ -696,6 +848,8 @@ Content-Type: application/json
     * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
 
 ## deviceFromTokenVerificationId : `GET /account/<uid>/tokens/<tokenVerificationId>/device`
+
+Deprecated; use `GET /account/<uid>/client_instances` instead.
 
 ### Example
 
@@ -729,7 +883,7 @@ Content-Type: application/json
     "callbackPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
     "callbackAuthKey": "w3b14Zjc-Afj2SDOLOyong",
     "callbackIsExpired": false,
-    "capabilities": ["messages"]
+    "availableCommands": {}
 }
 ```
 
@@ -745,7 +899,199 @@ Content-Type: application/json
     * Content-Type : 'application/json'
     * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
 
+## clientInstance : `GET /account/<uid>/device/<instanceId>`
+
+### Example
+
+```
+curl \
+    -v \
+    -X GET \
+    http://localhost:8000/account/6044486dd15b42e08b1fb9167415b9ac/client_instance/154c86dde08bfbb47415b9a216044916
+```
+
+### Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "uid": "6044486dd15b42e08b1fb9167415b9ac",
+    "email": "foo@example.org",
+    "clientId": "e32bcaf4314d933e", 
+    "clientInstanceId": "154c86dde08bfbb47415b9a216044916",
+    "sessionTokenId": "9a15b9ad6044ce08bfbb4744b1604491686dd15b42e2154c86d08b1fb9167415",
+    "refreshTokenId": null,
+    "createdAt": 1437992394186,
+    "name": "My Phone",
+    "pushURL": "https://updates.push.services.mozilla.com/update/abcdef01234567890abcdefabcdef01234567890abcdef",
+    "pushPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
+    "pushAuthKey": "w3b14Zjc-Afj2SDOLOyong",
+    "pushEndpointExpired": false,
+    "availableCommands": {},
+    "uaBrowser": "Firefox",
+    "uaBrowserVersion": "42",
+    "uaOS": "Android",
+    "uaOSVersion": "5.1",
+    "uaDeviceType": "mobile",
+    "uaFormFactor": null,
+    "lastAccessTime": 1437992394186
+}
+```
+
+* Status Code : 200 OK
+    * Content-Type : 'application/json'
+    * Body : `[ ... <see example> ...]`
+* Status Code : 500 Internal Server Error
+    * Conditions: if something goes wrong on the server
+    * Content-Type : 'application/json'
+    * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
+
+## createClientInstance : `PUT /account/<uid>/device/<instanceId>`
+
+Create a client instance record.
+
+### Example
+
+```
+curl \
+    -v \
+    -X PUT \
+    http://localhost:8000/account/6044486dd15b42e08b1fb9167415b9ac/client_instance/154c86dde08bfbb47415b9a216044916 \
+    -d '{
+      "uid": "6044486dd15b42e08b1fb9167415b9ac",
+      "clientId": "e32bcaf4314d933e", 
+      "clientInstanceId": "154c86dde08bfbb47415b9a216044916",
+      "sessionTokenId": "9a15b9ad6044ce08bfbb4744b1604491686dd15b42e2154c86d08b1fb9167415",
+      "refreshTokenId": null,
+      "name": "My Phone",
+      "createdAt": 1437992394186,
+      "pushURL": "https://updates.push.services.mozilla.com/update/abcdef01234567890abcdefabcdef01234567890abcdef",
+      "pushPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
+      "pushAuthKey": "w3b14Zjc-Afj2SDOLOyong",
+      "availableCommands": {}
+    }'
+```
+
+### Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{}
+```
+
+* Status Code : 200 OK
+    * Content-Type : 'application/json'
+    * Body : `[ ... <see example> ...]`
+* Status Code : 409 Conflict
+    * Conditions:
+      * if `sessionTokenId` is already owned by a different client instance
+      * if `refreshTokenId` is already owned by a different client instance
+      * if `clientId` differs from its previously registered value for this instance
+    * Content-Type : 'application/json'
+    * Body : `{"errno":101",message":"Record already exists"}`
+* Status Code : 500 Internal Server Error
+    * Conditions: if something goes wrong on the server
+    * Content-Type : 'application/json'
+    * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
+
+    
+## updateClientInstance : `POST /account/<uid>/device/<instanceId>/update`
+
+Update a client instance record.
+
+### Example
+
+```
+curl \
+    -v \
+    -X POST \
+    http://localhost:8000/account/6044486dd15b42e08b1fb9167415b9ac/client_instance/154c86dde08bfbb47415b9a216044916/update \
+    -d '{
+      "uid": "6044486dd15b42e08b1fb9167415b9ac",
+      "clientId": "e32bcaf4314d933e", 
+      "clientInstanceId": "154c86dde08bfbb47415b9a216044916",
+      "sessionTokenId": "9a15b9ad6044ce08bfbb4744b1604491686dd15b42e2154c86d08b1fb9167415",
+      "refreshTokenId": null,
+      "name": "My Phone",
+      "createdAt": 1437992394186,
+      "pushURL": "https://updates.push.services.mozilla.com/update/abcdef01234567890abcdefabcdef01234567890abcdef",
+      "pushPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
+      "pushAuthKey": "w3b14Zjc-Afj2SDOLOyong",
+      "availableCommands": { "example": "command" }
+    }'
+```
+
+### Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{}
+```
+
+* Status Code : 200 OK
+    * Content-Type : 'application/json'
+    * Body : `[ ... <see example> ...]`
+* Status Code : 409 Conflict
+    * Conditions:
+      * if `sessionTokenId` is already owned by a different client instance
+      * if `refreshTokenId` is already owned by a different client instance
+      * if `clientId` differs from its previously registered value for this instance
+    * Content-Type : 'application/json'
+    * Body : `{"errno":101",message":"Record already exists"}`
+* Status Code : 500 Internal Server Error
+    * Conditions: if something goes wrong on the server
+    * Content-Type : 'application/json'
+    * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
+
+## deleteClientInstance : `DELETE /account/<uid>/device/<instanceId>`
+
+Delete a clientInstance record,
+along with any sessionToken or refreshToken held by that instance.
+
+### Example
+
+```
+curl \
+    -v \
+    -X DELETE \
+    http://localhost:8000/account/6044486dd15b42e08b1fb9167415b9ac/client_instance/154c86dde08bfbb47415b9a216044916
+```
+
+### Response
+
+The response includes the ids of the sessionToken or refreshToken
+that was previously held by the client instance,
+so that calling code may update any internal caches
+keyed by these tokens.
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sessionTokenId":"522c251a1623e1f1db1f4fe68b9594d26772d6e77e04cb68e110c58600f97a77", "refreshTokenId": null}
+```
+
+* Status Code : 200 OK
+    * Content-Type : 'application/json'
+    * Body : `[ ... <see example> ...]`
+* Status Code : 404 Not Found
+    * Conditions: if clientInstance(uid,instanceId) is not found in the database
+    * Content-Type : 'application/json'
+    * Body : `{"errno":116,"message":"Not found"}`
+* Status Code : 500 Internal Server Error
+    * Conditions: if something goes wrong on the server
+    * Content-Type : 'application/json'
+    * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
+
 ## createDevice : `PUT /account/<uid>/device/<deviceId>`
+
+Deprecated; use `PUT /account/<uid>/client_instance/<instanceId>` instead.
 
 ### Example
 
@@ -765,7 +1111,7 @@ curl \
       "callbackPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
       "callbackAuthKey": "w3b14Zjc-Afj2SDOLOyong",
       "callbackIsExpired": false,
-      "capabilities": ["messages"]
+      "availableCommands": {}
     }'
 ```
 
@@ -796,6 +1142,8 @@ Content-Type: application/json
 
 ## updateDevice : `POST /account/<uid>/device/<deviceId>/update`
 
+Deprecated; use `POST /account/<uid>/client_instance/<instanceId>/update` instead.
+
 ### Example
 
 ```
@@ -814,7 +1162,7 @@ curl \
       "callbackPublicKey": "BCp93zru09_hab2Bg37LpTNG__Pw6eMPEP2hrQpwuytoj3h4chXpGc-3qqdKyqjuvAiEupsnOd_RLyc7erJHWgA",
       "callbackAuthKey": "w3b14Zjc-Afj2SDOLOyong",
       "callbackIsExpired": false,
-      "capabilities": ["messages"]
+      "availableCommands": {}
     }'
 ```
 
@@ -848,6 +1196,8 @@ Content-Type: application/json
     * Body : `{"code":"InternalError","message":"...<message related to the error>..."}`
 
 ## deleteDevice : `DELETE /account/<uid>/device/<deviceId>`
+
+Deprecated; use `DELETE /account/<uid>/client_instance/<instanceId>` instead.
 
 ### Example
 
@@ -909,12 +1259,8 @@ Content-Length: 285
     "uid":"6044486dd15b42e08b1fb9167415b9ac",
     "createdAt":1460548810011,
     "id":"522c251a1623e1f1db1f4fe68b9594d26772d6e77e04cb68e110c58600f97a77",
-    "uaBrowser":"Firefox",
-    "uaBrowserVersion":"47",
-    "uaOS":"Mac OS X",
-    "uaOSVersion":"10.10",
-    "uaDeviceType":null,
-    "uaFormFactor":null,
+    "tokenVerificationId":"12c41fac80fd6149f3f695e188b5f846",
+    "mustVerify":true,
     "lastAccessTime":1460548810011
     "emailVerified":0,
     "email":"foo@example.com",
@@ -928,9 +1274,13 @@ Content-Length: 285
     "deviceCallbackURL":null,
     "deviceCallbackPublicKey":null,
     "deviceCallbackIsExpired":false,
-    "deviceCapabilities":["messages"],
-    "mustVerify":true,
-    "tokenVerificationId":"12c41fac80fd6149f3f695e188b5f846"
+    "deviceAvailableCommands":{},
+    "uaBrowser":"Firefox",
+    "uaBrowserVersion":"47",
+    "uaOS":"Mac OS X",
+    "uaOSVersion":"10.10",
+    "uaDeviceType":null,
+    "uaFormFactor":null,
 }
 ```
 
@@ -995,7 +1345,7 @@ Content-Length: 285
     "deviceCallbackURL":null,
     "deviceCallbackPublicKey":null,
     "deviceCallbackIsExpired":false,
-    "deviceCapabilities":["messages"],
+    "deviceAvailableCommands": {},
     "mustVerify":true,
     "tokenVerificationId":"12c41fac80fd6149f3f695e188b5f846"
 }

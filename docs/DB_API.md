@@ -7,11 +7,9 @@ There are a number of methods that a DB storage backend should implement:
     * .account(uid)
     * .checkPassword(uid, hash)
     * .verifyEmail(uid, emailCode)
-    * .accountDevices(uid)
+    * .clientInstances(uid)
     * .resetAccount(uid, data)
     * .deleteAccount(uid)
-    * .sessions(uid)
-    * .devices(uid)
     * .accountEmails(uid)
     * .createEmail(uid, data)
     * .deleteEmail(uid, email)
@@ -27,10 +25,11 @@ There are a number of methods that a DB storage backend should implement:
     * .createSessionToken(tokenId, sessionToken)
     * .updateSessionToken(tokenId, sessionToken)
     * .deleteSessionToken(tokenId)
-* Devices
-    * .createDevice(uid, deviceId, device)
-    * .updateDevice(uid, deviceId, device)
-    * .deleteDevice(uid, deviceId)
+* Client Instances
+    * .clientInstance(uid, instanceId)
+    * .createClientInstance(uid, instanceId, metadata)
+    * .updateClientInstance(uid, instanceId, metadata)
+    * .deleteClientInstace(uid, instanceId)
 * Key Fetch Tokens
     * .createKeyFetchToken(tokenId, keyFetchToken)
     * .keyFetchToken(id)
@@ -40,6 +39,7 @@ There are a number of methods that a DB storage backend should implement:
     * .verifyTokens(tokenVerificationId, accountData)
     * .verifyTokensWithMethod(tokenId, tokenData)
     * .verifyTokenCode(code, accountData)
+    * clientInstanceFromTokenVerificationId(uid, tokenVerificationId)
 * Password Forgot Tokens
     * .createPasswordForgotToken(tokenId, passwordForgotToken)
     * .deletePasswordForgotToken(tokenId)
@@ -189,7 +189,7 @@ We do not separate the fact that the account uid may not exist and always
 resolve to an empty object. Verify Email will check both the account
 and email table for specified emailCode and verify it.
 
-## .accountDevices(uid) ##
+## .clientInstances(uid) ##
 
 Parameters:
 
@@ -197,14 +197,14 @@ Parameters:
 
 Returns:
 
-* success - an array of account devices (aka Session Tokens)
+* success - an array of client instances connected to the account
 * error:
     * an error from the underlying storage engine (wrapped in error.wrap())
 
 ## .resetAccount(uid, data) ##
 
 Resets the account specified by `uid` using the fields provided in `data`. Deletes all tokens
-and devices related to this account.
+and clientInstances related to this account.
 
 Parameters:
 
@@ -228,7 +228,7 @@ EXCEPTION TO NOTES: currently the backend sets `verifierSetAt` to be `Date.now()
 ## .deleteAccount(uid) ##
 
 Deletes the account specified by `uid`
-and all tokens and devices related to this account.
+and all tokens and client instances related to this account.
 
 Parameters:
 
@@ -240,39 +240,6 @@ Returns:
     * an empty object `{}`
 * rejects with:
     * any errors from the underlying storage engine
-
-
-## .sessions(uid) ##
-
-Fetches all session tokens for a user,
-without any of the secret data.
-
-Parameters:
-
-* `uid` - (Buffer16) the uid of the account to get sessions for
-
-Returns:
-
-* resolves with:
-    * an array of incompletely-populated session tokens
-* rejects with:
-    * any errors from the underlying storage engine
-
-## .devices(uid) ##
-
-Fetch all devices for a user.
-
-Parameters:
-
-* `uid` (Buffer16):
-  The uid of the account to get devices for
-
-Returns:
-
-* Resolves with:
-  * An array of device records
-* Rejects with:
-  * Any errors from the underlying storage engine
 
 ## .accountEmails(uid) ##
 
@@ -517,21 +484,21 @@ Each token returns different fields.
 These fields are represented as
 `t.*` for a field from the token,
 `a.*` for a field from the corresponding account and
-`d.*` for a field from `devices` and
+`ci.*` for a field from `clientInstances` and
 `ut.*` for a field from `unverifiedTokens`.
 
-The deviceCallbackPublicKey and deviceCallbackAuthKey fields are urlsafe-base64 strings, you can learn more about their format [here](https://developers.google.com/web/updates/2016/03/web-push-encryption).
+The clientInstancePushPublicKey and clientInstancePushAuthKey fields are urlsafe-base64 strings, you can learn more about their format [here](https://developers.google.com/web/updates/2016/03/web-push-encryption).
 
 * sessionToken : t.tokenData, t.uid, t.createdAt, t.uaBrowser, t.uaBrowserVersion,
                  t.uaOS, t.uaOSVersion, t.uaDeviceType, t.uaFormFactor, t.lastAccessTime,
                  a.emailVerified, a.email, a.emailCode, a.verifierSetAt,
-                 a.createdAt AS accountCreatedAt, d.id AS deviceId,
-                 d.name AS deviceName, d.type AS deviceType,
-                 d.createdAt AS deviceCreatedAt, d.callbackURL AS deviceCallbackURL,
-                 d.callbackPublicKey AS deviceCallbackPublicKey,
-                 d.callbackAuthKey AS deviceCallbackAuthKey,
-                 d.callbackIsExpired AS deviceCallbackIsExpired,
-                 d.capabilities AS deviceCapabilities,
+                 a.createdAt AS accountCreatedAt, ci.clientInstanceId, ci.clientId,
+                 ci.name AS clientInstanceName, ci.type AS clientInstanceType,
+                 ci.createdAt AS clientInstanceCreatedAt, ci.pushURL AS clientInstancePushURL,
+                 ci.pushPublicKey AS clientInstancePushPublicKey,
+                 ci.pushAuthKey AS clientInstancePushAuthKey,
+                 ci.pushEndpointExpired AS clientInstancePushEndpointExpired,
+                 ci.availableCommands AS clientInstanceAvailableCommands,
                  ut.mustVerify, ut.tokenVerificationId
 * keyFetchToken : t.authKey, t.uid, t.keyBundle, t.createdAt, a.emailVerified, a.verifierSetAt
 * keyFetchTokenWithVerificationStatus : t.authKey, t.uid, t.keyBundle, t.createdAt, a.emailVerified,
@@ -548,7 +515,7 @@ The deviceCallbackPublicKey and deviceCallbackAuthKey fields are urlsafe-base64 
 
 Will delete the token of the correct type designated by the given `tokenId`.
 For `sessionTokens`,
-associated records in `devices` and `unverifiedTokens`
+associated records in `clientInstances` and `unverifiedTokens`
 will also be deleted.
 For `keyFetchTokens`,
 associated records in `unverifiedTokens`
@@ -654,6 +621,19 @@ Returns a promise that:
     from the underlying storage system
     (wrapped in `error.wrap()`).
 
+## .clientInstanceFromTokenVerificationId(uid, tokenVerificationId)
+
+  Find the client instance that owns an about-to-be-verified sessionToken.
+  This is useful for triggering notifications to other client instances.
+
+  Returns a promise that:
+
+  * Resolves with a client instance record
+    if one is found for the essionToken
+    that matches the given `tokenVerificationId`.
+  * Rejects with error `{ code: 404, errno: 116 }`
+    if no such record is found.
+
 ## .forgotPasswordVerified(tokenId, accountResetToken) ##
 
 An extra function for `passwordForgotTokens`. This performs three operations:
@@ -740,96 +720,119 @@ Parameters:
 * `code` (Buffer):
   The value of the code
 
-## createDevice(uid, deviceId, device)
+## clientInstance(uid, clientInstanceId)
 
-Create a device record.
+Read a client instance record.
 
 Parameters:
 
 * `uid` (Buffer16):
   The uid of the owning account
-* `deviceId` (Buffer16):
-  The id of the device record
-* `device` (object):
+* `clientInstanceId` (Buffer16):
+  The id of the client instance record
+
+Returns:
+
+* Resolves with:
+  * `clientId` (Buffer8):
+    The OAuth client identifier for this instance, if any.
+  * `clientInstanceId` (Buffer16):
+    The client instance id as specified in parameters.
   * `sessionTokenId` (Buffer32):
-    The id of the associated session token
-  * `name` (string):
-    The name of the device
-  * `type` (string):
-    The device type, e.g. 'mobile', 'tablet'
+    The id of the associated session token, if any.
+  * `refreshTokenId` (Buffer32):
+    The id of the associated refresh token, if any.
   * `createdAt` (number):
-    Creation timestamp for the device, milliseconds since the epoch
-  * `callbackURL` (string):
-    URL for push service
-  * `callbackPublicKey` (string):
-    Public key for push service
-  * `callbackAuthKey` (string):
-    Auth key for push service
-  * `capabilities` (array):
-    Array of strings describing the current device capabilities
+    Creation timestamp for the client instance record, in milliseconds since the epoch
+  * `lastAccessTime` (number):
+    Timestamp of last activity for this client instance, in milliseconds since the epoch
+  * `name` (string):
+    The display-name of the client instance, if it has registered one.
+  * `pushURL` (string):
+    URL for receiving push notifications.
+  * `pushPublicKey` (string):
+    Public key for encrypting push notifications.
+  * `pushAuthKey` (string):
+    Auth key for encrypting push notifications.
+  * `pushEndpointExpired` (boolean):
+    Whether the currently-registered pushURL is known to have expired.
+  * `uaBrowser` (string):
+    User-agent identifier as parsed from its user-agent header.
+  * `uaBrowserVersion` (string):
+    User-agent version number as parsed from its user-agent header.
+  * `uaOS` (string):
+    User-agent device operating system, as parsed from its user-agent header.
+  * `uaOSVersion` (string):
+    User-agent device operating system version, as parsed from its user-agent header.
+  * `uaDeviceType`: (string):
+    User-agent physical device type, as parsed from its user-agent header.
+  * `uaFormFactor`: (string):
+    User-agent pysical device form-factor, as pated from its user-agent header.
+  * `availableCommands` (array):
+    Map of command names to command data bundles.
+* Rejects with:
+  * `error.notFound()` if no matching client instance record is found.
+  * Any error from the underlying storage system (wrapped in `error.wrap()`).
+
+## createClientInstance(uid, clientInstanceId, data)
+
+Create a client instance record.
+
+Parameters:
+
+* `uid` (Buffer16):
+  The uid of the owning account
+* `clientInstanceId` (Buffer16):
+  The id of the client instance record
+* `data` (object):
+  * Client instance record fields as documented for `clientInstance(uid, clientInstanceId)`.
 
 Returns:
 
 * Resolves with:
   * An empty object `{}`
 * Rejects with:
-  * `error.duplicate()` if a device already exists with the same `uid` and `deviceId`
-  * `error.unknownDeviceCapability()` if the input device contained an unknown capability name
+  * `error.duplicate()` if a client instance already exists with the same `uid` and `clientInstanceId`.
   * Any error from the underlying storage system (wrapped in `error.wrap()`)
 
-## updateDevice(uid, deviceId, device)
+## updateClientInstance(uid, clientInstanceId, data)
 
-Updates a device record.
+Update an existing client instance record.
 
 Parameters:
 
 * `uid` (Buffer16):
   The uid of the owning account
-* `deviceId` (Buffer16):
-  The id of the device record
-* `device` (object):
-  * `sessionTokenId` (Buffer32):
-    The id of the associated session token
-  * `name` (string):
-    The name of the device
-  * `type` (string):
-    The device type, e.g. 'mobile', 'tablet'
-  * `createdAt` (number):
-    Creation timestamp for the device, milliseconds since the epoch
-  * `callbackURL` (string):
-    URL for push service
-  * `callbackPublicKey` (string):
-    Public key for push service
-  * `callbackAuthKey` (string):
-    Auth key for push service
-  * `capabilities` (array):
-    Array of strings describing the current device capabilities
+* `clientInstanceId` (Buffer16):
+  The id of the client instance record
+* `data` (object):
+  * Client instance record fields as documented for `clientInstance(uid, clientInstanceId)`.
 
 Returns:
 
 * Resolves with:
   * An empty object `{}`
 * Rejects with:
-  * `error.unknownDeviceCapability()` if the input device contained an unknown capability name
+  * `error.duplicate()` if a client instance already exists for the specified `sessionTokenId` or `refreshTokenId`.
   * Any error from the underlying storage system (wrapped in `error.wrap()`)
 
-## deleteDevice(uid, deviceId)
+## deleteClientInstance(uid, clientInstanceId)
 
-Delete a device record.
+Delete a client instance record.
+This will also destroy any authentication tokens owned by the client instance.
 
 Parameters:
 
 * `uid` (Buffer16):
   The uid of the owning account
-* `deviceId` (Buffer16):
-  The id of the device record
+* `clientInstanceId` (Buffer16):
+  The id of the client instance record
 
 Returns:
 
 * Resolves with:
-  * An object containing a `sessionTokenId` property
-    identifying the associated session token,
-    which was also deleted
+  * An object containing a `sessionTokenId` and `refreshToken` properties,
+    identifying associated tokens which was also deleted.
 * Rejects with:
   * Any error from the underlying storage system (wrapped in `error.wrap()`)
 
