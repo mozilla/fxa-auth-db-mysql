@@ -1,5 +1,8 @@
 # Firefox Accounts database service
 
+**This project has moved to https://github.com/mozilla/fxa/tree/master/packages/fxa-auth-db-mysql**
+
+
 [![Build Status][ci-status-icon]][ci-status]
 [![CircleCI](https://circleci.com/gh/mozilla/fxa-auth-db-mysql.svg?style=svg)](https://circleci.com/gh/mozilla/fxa-auth-db-mysql)
 
